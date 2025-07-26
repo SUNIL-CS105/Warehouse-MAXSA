@@ -9,21 +9,18 @@
   <style>
     body { font-family: Arial; background: #f5f5f5; margin: 0; padding: 1rem; }
     h2 { margin-top: 0; }
-    .grid-stack { background: #fff; border: 2px solid #ccc; height: 85vh; }
+    .grid-stack { background: #fff; border: 2px solid #ccc; height: 85vh; position: relative; }
     .grid-stack-item-content {
-      background: #d9f2ff;
-      border: 1px solid #999;
+      background: #ffeb3b;
+      color: black;
+      border: 2px solid #333;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       padding: 5px;
       font-size: 12px;
+      font-weight: bold;
       overflow: hidden;
-    }
-    .location-label {
-      position: absolute;
-      font-size: 10px;
-      color: #555;
     }
     .pallet-box input {
       width: 100%;
@@ -47,6 +44,17 @@
       margin-top: 1rem;
       border: 1px solid #ccc;
     }
+    .label-cell {
+      position: absolute;
+      background-color: #ccc;
+      font-size: 10px;
+      padding: 2px;
+      z-index: 0;
+      border: 1px solid #888;
+    }
+    .office-zone, .restroom-zone {
+      background-color: #aaa !important;
+    }
   </style>
 </head>
 <body>
@@ -65,7 +73,7 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      const grid = GridStack.init({ float: true, cellHeight: 80, column: 20, minRow: 25 });
+      const grid = GridStack.init({ float: true, cellHeight: 80, column: 25, minRow: 30 });
 
       function addPallet(x, y, item = '', qty = '') {
         const el = document.createElement('div');
@@ -96,7 +104,7 @@
         const num = parseInt(splitQty);
         if (!isNaN(num) && num > 0 && num < qty) {
           qtyInput.value = qty - num;
-          addPallet(0, 5, box.querySelector('input[type="text"]').value, num); // spawn in temporary row
+          addPallet(0, 5, box.querySelector('input[type="text"]').value, num);
         }
       }
 
@@ -109,7 +117,7 @@
         const item = document.getElementById('new-item').value;
         const qty = document.getElementById('new-qty').value;
         if (item && qty > 0) {
-          addPallet(0, 5, item, qty);
+          addPallet(1, 25, item, qty);
           document.getElementById('new-item').value = '';
           document.getElementById('new-qty').value = '';
         } else {
@@ -135,13 +143,49 @@
         document.getElementById('summary-box').innerHTML = summaryHTML;
       }
 
-      // Add special drop zones
-      addPallet(0, 0, 'DROP ZONE: SHIPPED', '');
-      addPallet(19, 0, 'DROP ZONE: TO 8412', '');
+      function labelLocations() {
+        const gridEl = document.querySelector('.grid-stack');
+        const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X'];
+        rows.forEach((row, i) => {
+          for (let j = 1; j <= 11; j++) {
+            const label = document.createElement('div');
+            label.className = 'label-cell';
+            label.style.left = `${j * 50}px`;
+            label.style.top = `${i * 80}px`;
+            label.style.width = '50px';
+            label.style.height = '20px';
+            label.innerText = `${row}${j}`;
+            gridEl.appendChild(label);
+          }
+        });
 
-      // Initial temp pallets for demo
-      addPallet(1, 22, '12345', '100');
-      addPallet(2, 22, '67890', '60');
+        for (let k = 1; k <= 30; k++) {
+          const label = document.createElement('div');
+          label.className = 'label-cell office-zone';
+          label.style.left = `${(k % 6) * 50 + 600}px`;
+          label.style.top = `${Math.floor((k - 1) / 6) * 80}px`;
+          label.style.width = '50px';
+          label.style.height = '20px';
+          label.innerText = `Office${k}`;
+          gridEl.appendChild(label);
+        }
+
+        ['Restroom1', 'Restroom2', 'Shelf1', 'Shelf2', 'Shelf3', 'Shelf4', 'Shelf5', 'Shelf6', 'Shelf7', 'Shelf8', 'Shelf9'].forEach((name, idx) => {
+          const label = document.createElement('div');
+          label.className = 'label-cell restroom-zone';
+          label.style.left = `${idx * 50}px`;
+          label.style.top = `2000px`;
+          label.style.width = '50px';
+          label.style.height = '20px';
+          label.innerText = name;
+          document.querySelector('.grid-stack').appendChild(label);
+        });
+      }
+
+      addPallet(0, 0, 'SHIPPED', '');
+      addPallet(24, 0, 'TO 8412', '');
+
+      labelLocations();
     });
   </script>
 </body>
