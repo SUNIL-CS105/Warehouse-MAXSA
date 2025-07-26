@@ -2,240 +2,144 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=0.9" />
-  <title>MAXSA Warehouse Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MAXSA Warehouse Map with Firebase</title>
   <script src="https://cdn.jsdelivr.net/npm/gridstack@8.2.1/dist/gridstack-all.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/gridstack@8.2.1/dist/gridstack.min.css" rel="stylesheet"/>
+  <script type="module">
+    // Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDgTBFlnjtcbdvuf2l7YUnoHXK9-L4I5MI",
+      authDomain: "warehouse-maxsa.firebaseapp.com",
+      projectId: "warehouse-maxsa",
+      storageBucket: "warehouse-maxsa.firebasestorage.app",
+      messagingSenderId: "978214247804",
+      appId: "1:978214247804:web:aa785914ee177d74ba98f9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const grid = GridStack.init({ float: true, cellHeight: 80, column: 25, minRow: 30 });
+
+    function createPalletElement(id, item, qty, x = 1, y = 25) {
+      const el = document.createElement('div');
+      el.classList.add('grid-stack-item');
+      el.setAttribute('gs-x', x);
+      el.setAttribute('gs-y', y);
+      el.setAttribute('gs-width', 1);
+      el.setAttribute('gs-height', 1);
+      el.setAttribute('data-id', id);
+
+      el.innerHTML = `
+        <div class="grid-stack-item-content pallet-box" style="background:red;color:white;border:2px solid black;">
+          <div><strong>${item}</strong></div>
+          <div>Qty: ${qty}</div>
+          <div class="control-btns">
+            <button class="btn" onclick="splitPallet('${id}', '${item}', ${qty})">Split</button>
+            <button class="btn" onclick="removePallet('${id}', this)">Ship</button>
+          </div>
+        </div>`;
+      grid.addWidget(el);
+    }
+
+    window.splitPallet = async function(id, item, qty) {
+      const newQty = prompt("Enter quantity for new split pallet", Math.floor(qty/2));
+      if (!isNaN(newQty) && newQty > 0 && newQty < qty) {
+        // Reduce original quantity in Firestore
+        await deleteDoc(doc(db, "pallets", id));
+        await addDoc(collection(db, "pallets"), { item, qty: qty - newQty });
+        await addDoc(collection(db, "pallets"), { item, qty: parseInt(newQty) });
+        location.reload();
+      }
+    };
+
+    window.removePallet = async function(id, btn) {
+      await deleteDoc(doc(db, "pallets", id));
+      const box = btn.closest('.grid-stack-item');
+      grid.removeWidget(box);
+    };
+
+    window.spawnNewPallet = async function () {
+      const item = document.getElementById('new-item').value.trim();
+      const qty = parseInt(document.getElementById('new-qty').value.trim());
+      if (!item || isNaN(qty) || qty <= 0) {
+        alert("Please enter valid item and quantity");
+        return;
+      }
+      await addDoc(collection(db, "pallets"), { item, qty });
+      document.getElementById('new-item').value = '';
+      document.getElementById('new-qty').value = '';
+      location.reload();
+    };
+
+    window.calculateTotals = async function () {
+      const snapshot = await getDocs(collection(db, "pallets"));
+      const totals = {};
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        totals[d.item] = (totals[d.item] || 0) + d.qty;
+      });
+      let summaryHTML = '<h4>Total Remaining Quantities:</h4><ul>';
+      for (let item in totals) {
+        summaryHTML += `<li>${item}: ${totals[item]}</li>`;
+      }
+      summaryHTML += '</ul>';
+      document.getElementById('summary-box').innerHTML = summaryHTML;
+    };
+
+    async function loadPallets() {
+      const snapshot = await getDocs(collection(db, "pallets"));
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        createPalletElement(doc.id, d.item, d.qty);
+      });
+    }
+
+    window.onload = () => loadPallets();
+  </script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      margin: 0;
-      padding: 1rem;
-    }
-
-    h2 {
-      margin-top: 0;
-    }
-
-    .grid-stack {
-      background: #fff;
-      border: 2px solid #ccc;
-      height: 85vh;
-      position: relative;
-    }
-
+    body { font-family: Arial; background: #f5f5f5; margin: 0; padding: 1rem; }
+    h2 { margin-top: 0; }
+    .grid-stack { background: #fff; border: 2px solid #ccc; height: 85vh; position: relative; }
     .grid-stack-item-content {
-      background: #ff3b3b;
-      color: #fff;
-      border: 2px solid #000;
-      font-weight: bold;
+      background: #ffeb3b;
+      color: black;
+      border: 1px solid #333;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      align-items: center;
+      padding: 5px;
       font-size: 12px;
-      position: relative;
+      overflow: hidden;
     }
-
-    .split-btn {
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      background: black;
-      color: white;
-      font-size: 10px;
-      padding: 2px 4px;
-      border-radius: 2px;
-      cursor: pointer;
-      z-index: 2;
-    }
-
-    .btn {
-      font-size: 12px;
-      padding: 6px 10px;
-      cursor: pointer;
-      background: #444;
-      color: #fff;
-      border: none;
-      border-radius: 3px;
-    }
-
-    .btn:hover {
-      background: #000;
-    }
-
+    .btn { font-size: 10px; padding: 2px 4px; cursor: pointer; background: #444; color: #fff; border: none; border-radius: 3px; margin: 2px 0; }
+    .btn:hover { background: #000; }
     #add-product-panel {
       margin-bottom: 1rem;
       display: flex;
       gap: 10px;
       align-items: center;
     }
-
     #summary-box {
       background: #eee;
       padding: 10px;
       margin-top: 1rem;
       border: 1px solid #ccc;
     }
-
-    .label-cell {
-      position: absolute;
-      background-color: #ccc;
-      font-size: 10px;
-      padding: 2px;
-      z-index: 0;
-      border: 1px solid #888;
-      text-align: center;
-    }
-
-    .office-zone, .restroom-zone {
-      background-color: #aaa !important;
-    }
   </style>
 </head>
 <body>
   <h2>MAXSA Warehouse Map</h2>
-
   <div id="add-product-panel">
-    <input type="text" id="new-item" placeholder="New Item #" />
-    <input type="number" id="new-qty" placeholder="Quantity" />
+    <input type="text" id="new-item" placeholder="New Item #">
+    <input type="number" id="new-qty" placeholder="Quantity">
     <button class="btn" onclick="spawnNewPallet()">➕ Add New Product</button>
     <button class="btn" onclick="calculateTotals()">📊 Get Inventory Summary</button>
   </div>
-
   <div class="grid-stack"></div>
-
   <div id="summary-box"></div>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const grid = GridStack.init({
-        float: true,
-        cellHeight: 50,
-        column: 25,
-        minRow: 30,
-        disableOneColumnMode: true
-      });
-
-      function addPallet(x, y, item = '', qty = '') {
-        const el = document.createElement('div');
-        el.classList.add('grid-stack-item');
-        el.setAttribute('gs-x', x);
-        el.setAttribute('gs-y', y);
-        el.setAttribute('gs-width', 1);
-        el.setAttribute('gs-height', 1);
-
-        el.innerHTML = `
-          <div class="grid-stack-item-content pallet-box">
-            <div class="split-btn" onclick="splitPallet(this)">🪓</div>
-            <div>${item}</div>
-            <div>${qty} pcs</div>
-          </div>
-        `;
-        grid.addWidget(el);
-      }
-
-      window.splitPallet = function (btn) {
-        const box = btn.closest('.pallet-box');
-        const item = box.children[1].innerText;
-        const qty = parseInt(box.children[2].innerText.replace(' pcs', ''));
-        const splitQty = prompt('Quantity to split into new pallet:', Math.floor(qty / 2));
-        const num = parseInt(splitQty);
-
-        if (!isNaN(num) && num > 0 && num < qty) {
-          box.children[2].innerText = `${qty - num} pcs`;
-          addPallet(1, 25, item, num);
-        }
-      };
-
-      window.spawnNewPallet = function () {
-        const item = document.getElementById('new-item').value;
-        const qty = parseInt(document.getElementById('new-qty').value);
-        if (item && qty > 0) {
-          addPallet(1, 25, item, qty);
-          document.getElementById('new-item').value = '';
-          document.getElementById('new-qty').value = '';
-        } else {
-          alert("Please enter both item and quantity.");
-        }
-      };
-
-      window.calculateTotals = function () {
-        const widgets = document.querySelectorAll('.pallet-box');
-        const totals = {};
-        widgets.forEach(w => {
-          const item = w.children[1].innerText;
-          const qty = parseInt(w.children[2].innerText.replace(" pcs", ""));
-          if (item && !isNaN(qty)) {
-            totals[item] = (totals[item] || 0) + qty;
-          }
-        });
-
-        let summaryHTML = '<h4>Total Remaining Quantities:</h4><ul>';
-        for (let item in totals) {
-          summaryHTML += `<li>${item}: ${totals[item]}</li>`;
-        }
-        summaryHTML += '</ul>';
-        document.getElementById('summary-box').innerHTML = summaryHTML;
-      };
-
-      function labelLocations() {
-        const gridEl = document.querySelector('.grid-stack');
-        const rows = ['X','W','V','U','T','S','R','Q','P','O','N','M','L','K','J','I','H','G','F','E','D','C','B','A'];
-        rows.forEach((row, i) => {
-          for (let j = 1; j <= 11; j++) {
-            const label = document.createElement('div');
-            label.className = 'label-cell';
-            label.style.left = `${j * 80}px`;
-            label.style.top = `${i * 50}px`;
-            label.style.width = '80px';
-            label.style.height = '50px';
-            label.innerText = `${row}${j}`;
-            gridEl.appendChild(label);
-          }
-        });
-
-        for (let k = 1; k <= 30; k++) {
-          const label = document.createElement('div');
-          label.className = 'label-cell office-zone';
-          label.style.left = `${(k % 6) * 80 + 980}px`;
-          label.style.top = `${Math.floor((k - 1) / 6) * 50}px`;
-          label.style.width = '80px';
-          label.style.height = '50px';
-          label.innerText = `Office${k}`;
-          gridEl.appendChild(label);
-        }
-
-        const extras = [
-          { name: 'Restroom1', left: 980, top: 500 },
-          { name: 'Restroom2', left: 1060, top: 500 },
-          { name: 'Shelf1', left: 1220, top: 500 },
-          { name: 'Shelf2', left: 1300, top: 500 },
-          { name: 'Shelf3', left: 1380, top: 500 },
-          { name: 'Shelf4', left: 1220, top: 550 },
-          { name: 'Shelf5', left: 1300, top: 550 },
-          { name: 'Shelf6', left: 1380, top: 550 },
-          { name: 'Temporary1', left: 980, top: 550 },
-          { name: 'Temporary2', left: 1060, top: 550 },
-        ];
-        extras.forEach(({ name, left, top }) => {
-          const label = document.createElement('div');
-          label.className = 'label-cell restroom-zone';
-          label.style.left = `${left}px`;
-          label.style.top = `${top}px`;
-          label.style.width = '80px';
-          label.style.height = '50px';
-          label.innerText = name;
-          gridEl.appendChild(label);
-        });
-      }
-
-      addPallet(0, 0, 'SHIPPED', '');
-      addPallet(24, 0, 'TO 8412', '');
-
-      labelLocations();
-    });
-  </script>
 </body>
 </html>
