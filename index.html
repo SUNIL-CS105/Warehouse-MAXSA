@@ -2,52 +2,94 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=0.9" />
-  <title>MAXSA Warehouse Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MAXSA Warehouse</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gridstack@8.2.1/dist/gridstack-all.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/gridstack@8.2.1/dist/gridstack.min.css" rel="stylesheet" />
   <style>
-    body { font-family: Arial; background: #f5f5f5; margin:0; padding:1rem; }
-    h2 { margin-top: 0; }
-    .grid-stack { background: #fff; border:2px solid #ccc; height:85vh; position:relative; }
-    .grid-stack-item-content {
-      background: #ff3b3b; color: white; border:2px solid black;
-      font-weight:bold; display:flex; flex-direction:column;
-      justify-content:center; align-items:center; font-size:12px; position:relative;
+    body {
+      font-family: Arial;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 1rem;
     }
-    .split-btn {
-      position: absolute; top:2px; right:2px;
-      background:black; color:white; font-size:10px;
-      padding:2px 4px; border-radius:2px; cursor:pointer; z-index:2;
+
+    .grid-stack {
+      position: relative;
+      width: 1700px;
+      height: 1000px;
+      background: white;
+      border: 2px solid #ccc;
     }
+
+    .label-cell {
+      position: absolute;
+      border: 1px solid #ccc;
+      text-align: center;
+      padding: 5px;
+      font-size: 12px;
+      background-color: #f9f9f9;
+      box-sizing: border-box;
+      width: 80px;
+      height: 40px;
+    }
+
+    .pallet {
+      position: absolute;
+      background: orange;
+      color: black;
+      font-weight: bold;
+      border: 2px solid #555;
+      text-align: center;
+      cursor: move;
+      user-select: none;
+      box-sizing: border-box;
+      width: 80px;
+      height: 40px;
+    }
+
+    .drop-zone {
+      border: 2px dashed white;
+    }
+
+    .form-panel {
+      margin-bottom: 1rem;
+    }
+
+    .form-panel input {
+      font-size: 14px;
+      padding: 6px;
+      margin-right: 10px;
+    }
+
     .btn {
-      font-size:12px; padding:6px 10px; cursor:pointer;
-      background:#444; color:white; border:none; border-radius:3px;
-      margin-right: 8px;
+      font-size: 14px;
+      padding: 6px 10px;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
     }
-    .btn:hover { background: #000; }
-    #add-product-panel { margin-bottom:1rem; }
-    #summary-box { background:#eee; padding:10px; margin-top:1rem; border:1px solid #ccc; }
-    .label-cell { position:absolute; background:#ccc; font-size:10px;
-      padding:2px; z-index:0; border:1px solid #888; text-align:center;
+
+    .btn:hover {
+      background: black;
     }
-    .office-zone, .restroom-zone { background:#aaa !important; }
   </style>
 </head>
 <body>
   <h2>MAXSA Warehouse Map</h2>
-  <div id="add-product-panel">
-    <input type="text" id="new-item" placeholder="Item #" />
-    <input type="number" id="new-qty" placeholder="Quantity" />
-    <button class="btn" onclick="spawnNewPallet()">➕ Add New Product</button>
-    <button class="btn" onclick="calculateTotals()">📊 Inventory Summary</button>
+
+  <div class="form-panel">
+    <input type="text" id="item-id" placeholder="Item #" />
+    <input type="number" id="quantity" placeholder="Quantity" />
+    <button class="btn" onclick="addNewPallet()">➕ Add Product</button>
   </div>
-  <div class="grid-stack"></div>
-  <div id="summary-box"></div>
+
+  <div class="grid-stack" id="warehouse-grid"></div>
 
   <script>
+    // Firebase setup
     const firebaseConfig = {
       apiKey: "AIzaSyDgTBFlnjtcbdvuf2l7YUnoHXK9-L4I5MI",
       authDomain: "warehouse-maxsa.firebaseapp.com",
@@ -59,156 +101,125 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const grid = GridStack.init({ float:true, cellHeight:50, column:40, minRow:30 });
 
-    const pallets = {};
-
-    function addPallet(id, x, y, item, qty) {
-      if (pallets[id]) return;
-      const el = document.createElement('div');
-      el.classList.add('grid-stack-item');
-      el.setAttribute('gs-x', x);
-      el.setAttribute('gs-y', y);
-      el.setAttribute('gs-width', 1);
-      el.setAttribute('gs-height', 1);
-      el.setAttribute('data-id', id);
-      el.innerHTML = `
-        <div class="grid-stack-item-content">
-          <div class="split-btn" onclick="splitPallet(event, '${id}')">🪓</div>
-          <div>${item}</div>
-          <div>${qty} pcs</div>
-        </div>`;
-      grid.addWidget(el);
-      pallets[id] = { el, item, qty };
-      el.addEventListener('dragstop', () => onDragStop(id));
+    function createLabel(x, y, text, className = '') {
+      const div = document.createElement('div');
+      div.className = `label-cell ${className}`;
+      div.style.left = `${x}px`;
+      div.style.top = `${y}px`;
+      div.innerText = text;
+      document.getElementById('warehouse-grid').appendChild(div);
     }
 
-    function onDragStop(id) {
-      const node = grid.engine.nodes.find(n => n.el.getAttribute('data-id') === id);
-      const x = node.x, y = node.y;
-      if (y === 0 && (x === 0 || x === 38)) {
-        db.ref('pallets/' + id).remove();
-      } else {
-        db.ref('pallets/' + id).update({ x, y });
-      }
-    }
-
-    window.spawnNewPallet = () => {
-      const item = document.getElementById('new-item').value.trim();
-      const qty = parseInt(document.getElementById('new-qty').value);
-      if (!item || isNaN(qty) || qty <= 0) return alert("Enter valid item & quantity");
-      const id = 'p' + Date.now();
-      db.ref('pallets/' + id).set({ x:1, y:25, item, qty });
-      document.getElementById('new-item').value = '';
-      document.getElementById('new-qty').value = '';
-    };
-
-    window.splitPallet = (ev, id) => {
-      ev.stopPropagation();
-      const p = pallets[id];
-      const num = parseInt(prompt('Split qty?', Math.floor(p.qty / 2)));
-      if (!isNaN(num) && num > 0 && num < p.qty) {
-        db.ref('pallets/' + id + '/qty').set(p.qty - num);
-        const newId = 'p' + Date.now();
-        db.ref('pallets/' + newId).set({ x: Number(p.el.getAttribute('gs-x')) + 1, y: Number(p.el.getAttribute('gs-y')), item: p.item, qty: num });
-      }
-    };
-
-    window.calculateTotals = () => {
-      let totals = {};
-      Object.values(pallets).forEach(p => totals[p.item] = (totals[p.item] || 0) + p.qty);
-      let html = '<h4>Total Remaining Quantities:</h4><ul>';
-      for (let item in totals) html += `<li>${item}: ${totals[item]}</li>`;
-      html += '</ul>';
-      document.getElementById('summary-box').innerHTML = html;
-    };
-
-    function labelLocations() {
-      const rows = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].slice(0, 24).reverse();
+    function renderLabels() {
+      const grid = document.getElementById('warehouse-grid');
+      const rows = ['X','W','V','U','T','S','R','Q','P','O','N','M','L','K','J','I','H','G','F','E','D','C','B','A'];
       rows.forEach((row, i) => {
         for (let j = 1; j <= 11; j++) {
-          const l = document.createElement('div');
-          l.className = 'label-cell';
-          l.style.left = `${j * 80}px`;
-          l.style.top = `${i * 50}px`;
-          l.style.width = '80px';
-          l.style.height = '50px';
-          l.innerText = row + j;
-          document.querySelector('.grid-stack').appendChild(l);
+          createLabel(j * 80, i * 50, `${row}${j}`);
         }
       });
 
+      // Offices
       for (let k = 1; k <= 30; k++) {
-        const l = document.createElement('div');
-        l.className = 'label-cell office-zone';
-        l.style.left = `${(k % 6) * 80 + 1600}px`;
-        l.style.top = `${Math.floor((k - 1) / 6) * 50}px`;
-        l.style.width = '80px';
-        l.style.height = '50px';
-        l.innerText = 'Office' + k;
-        document.querySelector('.grid-stack').appendChild(l);
+        const x = (k % 6) * 80 + 1000;
+        const y = Math.floor((k - 1) / 6) * 50;
+        createLabel(x, y, `Office${k}`, 'office-zone');
       }
 
-      ['Restroom1','Restroom2'].forEach((n, i) => {
-        const l = document.createElement('div');
-        l.className = 'label-cell restroom-zone';
-        l.style.left = '1600px';
-        l.style.top = `${350 + i * 50}px`;
-        l.style.width = '80px';
-        l.style.height = '50px';
-        l.innerText = n;
-        document.querySelector('.grid-stack').appendChild(l);
-      });
+      // Restrooms and Shelves
+      const extras = [
+        { name: 'Restroom1', left: 1000, top: 300 },
+        { name: 'Restroom2', left: 1080, top: 300 },
+        { name: 'Shelf1', left: 1240, top: 300 },
+        { name: 'Shelf2', left: 1320, top: 300 },
+        { name: 'Shelf3', left: 1400, top: 300 },
+        { name: 'Shelf4', left: 1240, top: 350 },
+        { name: 'Shelf5', left: 1320, top: 350 },
+        { name: 'Shelf6', left: 1400, top: 350 },
+        { name: 'Temporary1', left: 1000, top: 350 },
+        { name: 'Temporary2', left: 1080, top: 350 }
+      ];
+      extras.forEach(e => createLabel(e.left, e.top, e.name, 'restroom-zone'));
 
-      for (let s = 1; s <= 9; s++) {
-        const l = document.createElement('div');
-        l.className = 'label-cell restroom-zone';
-        l.style.left = `${1680 + ((s - 1) % 3) * 80}px`;
-        l.style.top = `${350 + Math.floor((s - 1) / 3) * 50}px`;
-        l.style.width = '80px';
-        l.style.height = '50px';
-        l.innerText = 'Shelf' + s;
-        document.querySelector('.grid-stack').appendChild(l);
-      }
-
-      ['🟥 SHIPPED', '🟦 TO 8412'].forEach((n, i) => {
-        const l = document.createElement('div');
-        l.className = 'label-cell';
-        l.style.left = `${(38 + i * 2) * 40}px`;
-        l.style.top = '1100px';
-        l.style.width = '80px';
-        l.style.height = '50px';
-        l.innerText = n;
-        document.querySelector('.grid-stack').appendChild(l);
+      // SHIPPED and TO 8412
+      const zones = [
+        { name: 'SHIPPED', left: 1000, top: 420, color: 'red' },
+        { name: 'TO 8412', left: 1320, top: 420, color: 'blue' }
+      ];
+      zones.forEach(z => {
+        const drop = document.createElement('div');
+        drop.className = 'label-cell drop-zone';
+        drop.style.left = `${z.left}px`;
+        drop.style.top = `${z.top}px`;
+        drop.style.backgroundColor = z.color;
+        drop.style.color = 'white';
+        drop.style.fontWeight = 'bold';
+        drop.innerText = z.name;
+        drop.style.width = '160px';
+        drop.style.height = '80px';
+        drop.id = z.name;
+        drop.ondragover = e => e.preventDefault();
+        drop.ondrop = e => handleDrop(e, z.name);
+        grid.appendChild(drop);
       });
     }
 
-    labelLocations();
-
-    db.ref('pallets').on('value', snapshot => {
-      const data = snapshot.val() || {};
-      for (let id in pallets) {
-        if (!data[id]) {
-          grid.removeWidget(pallets[id].el);
-          delete pallets[id];
-        }
+    function handleDrop(e, zoneName) {
+      e.preventDefault();
+      const palletId = e.dataTransfer.getData('text/plain');
+      if (palletId && zoneName) {
+        db.ref('pallets/' + palletId).remove();
       }
-      Object.entries(data).forEach(([id, v]) => {
-        if (!pallets[id]) {
-          addPallet(id, v.x, v.y, v.item, v.qty);
-        } else {
-          let p = pallets[id];
-          p.qty = v.qty; p.item = v.item;
-          const content = p.el.querySelector('.grid-stack-item-content');
-          content.children[1].innerText = p.item;
-          content.children[2].innerText = p.qty + ' pcs';
-          const node = grid.engine.nodes.find(n => n.el.getAttribute('data-id') === id);
-          if (node.x !== v.x || node.y !== v.y) {
-            grid.update(p.el, { x: v.x, y: v.y });
-          }
+    }
+
+    function renderPallet(id, data) {
+      const pallet = document.createElement('div');
+      pallet.className = 'pallet';
+      pallet.style.left = `${data.x}px`;
+      pallet.style.top = `${data.y}px`;
+      pallet.innerText = `${data.item}\nQty: ${data.qty}`;
+      pallet.id = id;
+      pallet.draggable = true;
+
+      pallet.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', id);
+        e.target.classList.add('dragging');
+      });
+      pallet.addEventListener('dragend', e => {
+        const left = parseInt(pallet.style.left);
+        const top = parseInt(pallet.style.top);
+        db.ref('pallets/' + id).update({ x: left, y: top });
+        pallet.classList.remove('dragging');
+      });
+
+      document.getElementById('warehouse-grid').appendChild(pallet);
+    }
+
+    function addNewPallet() {
+      const item = document.getElementById('item-id').value.trim();
+      const qty = parseInt(document.getElementById('quantity').value);
+      if (!item || isNaN(qty) || qty <= 0) return alert('Enter valid item & quantity');
+      const id = 'p' + Date.now();
+      db.ref('pallets/' + id).set({ item, qty, x: 100, y: 700 });
+      document.getElementById('item-id').value = '';
+      document.getElementById('quantity').value = '';
+    }
+
+    function loadPallets() {
+      db.ref('pallets').on('value', snapshot => {
+        const all = document.querySelectorAll('.pallet');
+        all.forEach(p => p.remove());
+
+        const data = snapshot.val();
+        for (let id in data) {
+          renderPallet(id, data[id]);
         }
       });
-    });
+    }
+
+    renderLabels();
+    loadPallets();
   </script>
 </body>
 </html>
