@@ -145,12 +145,12 @@
 
       function labelLocations() {
         const gridEl = document.querySelector('.grid-stack');
-        const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X'];
+        const rows = ['X','W','V','U','T','S','R','Q','P','O','N','M','L','K','J','I','H','G','F','E','D','C','B','A'];
         rows.forEach((row, i) => {
           for (let j = 1; j <= 11; j++) {
             const label = document.createElement('div');
             label.className = 'label-cell';
-            label.style.left = `${j * 50}px`;
+            label.style.left = `${j * 80}px`;
             label.style.top = `${i * 80}px`;
             label.style.width = '80px';
             label.style.height = '40px';
@@ -162,7 +162,7 @@
         for (let k = 1; k <= 30; k++) {
           const label = document.createElement('div');
           label.className = 'label-cell office-zone';
-          label.style.left = `${(k % 6) * 50 + 800}px`;
+          label.style.left = `${(k % 6) * 50 + 1000}px`;
           label.style.top = `${Math.floor((k - 1) / 6) * 80}px`;
           label.style.width = '50px';
           label.style.height = '20px';
@@ -173,8 +173,8 @@
         ['Restroom1', 'Restroom2', 'Shelf1', 'Shelf2', 'Shelf3', 'Shelf4', 'Shelf5', 'Shelf6', 'Shelf7', 'Shelf8', 'Shelf9'].forEach((name, idx) => {
           const label = document.createElement('div');
           label.className = 'label-cell restroom-zone';
-          label.style.left = `${idx * 50}px`;
-          label.style.top = `500px`;
+          label.style.left = `${idx * 1000}px`;
+          label.style.top = `400px`;
           label.style.width = '80px';
           label.style.height = '40px';
           label.innerText = name;
