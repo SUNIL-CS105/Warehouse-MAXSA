@@ -164,22 +164,31 @@
           label.className = 'label-cell office-zone';
           label.style.left = `${(k % 6) * 50 + 1000}px`;
           label.style.top = `${Math.floor((k - 1) / 6) * 80}px`;
-          label.style.width = '50px';
-          label.style.height = '20px';
+          label.style.width = '80px';
+          label.style.height = '40px';
           label.innerText = `Office${k}`;
           gridEl.appendChild(label);
         }
 
-        ['Restroom1', 'Restroom2', 'Shelf1', 'Shelf2', 'Shelf3', 'Shelf4', 'Shelf5', 'Shelf6', 'Shelf7', 'Shelf8', 'Shelf9'].forEach((name, idx) => {
-          const label = document.createElement('div');
-          label.className = 'label-cell restroom-zone';
-          label.style.left = `${idx * 1000}px`;
-          label.style.top = `400px`;
-          label.style.width = '80px';
-          label.style.height = '40px';
-          label.innerText = name;
-          document.querySelector('.grid-stack').appendChild(label);
-        });
+       const items = [
+        { name: 'Restroom1', left: 1000, top: 4500 },
+        { name: 'Restroom2', left: 2000, top: 4500 },
+        { name: 'Shelf1', left: 3000, top: 5000 },
+        { name: 'Shelf2', left: 4000, top: 5000 },
+        { name: 'Shelf3', left: 4500, top: 5000 },
+        { name: 'Shelf4', left: 5000, top: 5000 },
+      ];
+      items.forEach(({ name, left, top }) => {
+        const label = document.createElement('div');
+        label.className = 'label-cell restroom-zone';
+        label.style.left = `${left}px`;
+        label.style.top = `${top}px`;
+        label.style.width = '80px';
+        label.style.height = '40px';
+        label.innerText = name;
+        gridEl.appendChild(label);
+      });
+
       }
 
       addPallet(0, 0, 'SHIPPED', '');
