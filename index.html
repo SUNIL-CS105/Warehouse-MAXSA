@@ -151,9 +151,9 @@
             const label = document.createElement('div');
             label.className = 'label-cell';
             label.style.left = `${j * 50}px`;
-            label.style.top = `${i * 80}px`;
-            label.style.width = '50px';
-            label.style.height = '20px';
+            label.style.top = `${i * 10}px`;
+            label.style.width = '80px';
+            label.style.height = '40px';
             label.innerText = `${row}${j}`;
             gridEl.appendChild(label);
           }
@@ -174,9 +174,9 @@
           const label = document.createElement('div');
           label.className = 'label-cell restroom-zone';
           label.style.left = `${idx * 50}px`;
-          label.style.top = `2000px`;
-          label.style.width = '50px';
-          label.style.height = '20px';
+          label.style.top = `500px`;
+          label.style.width = '80px';
+          label.style.height = '40px';
           label.innerText = name;
           document.querySelector('.grid-stack').appendChild(label);
         });
@@ -190,3 +190,5 @@
   </script>
 </body>
 </html>
+
+
