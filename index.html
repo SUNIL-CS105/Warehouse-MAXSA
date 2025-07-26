@@ -1,106 +1,147 @@
-<!-- Warehouse Drag-and-Drop Interface: Starter Template -->
-<!-- Step-by-step build using HTML, CSS, JavaScript + GridStack.js -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Warehouse Visual Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Include GridStack CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/gridstack@9.2.2/dist/gridstack.min.css" rel="stylesheet" />
+  <title>MAXSA Warehouse Map</title>
+  <script src="https://cdn.jsdelivr.net/npm/gridstack@8.2.1/dist/gridstack-all.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/gridstack@8.2.1/dist/gridstack.min.css" rel="stylesheet"/>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-    }
+    body { font-family: Arial; background: #f5f5f5; margin: 0; padding: 1rem; }
+    h2 { margin-top: 0; }
+    .grid-stack { background: #fff; border: 2px solid #ccc; height: 85vh; }
     .grid-stack-item-content {
-      background-color: #fff;
-      border: 2px solid #007bff;
-      padding: 10px;
-      text-align: center;
-      border-radius: 8px;
-      box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
-    }
-    .menu {
-      margin-top: 10px;
-    }
-    .menu select, .menu input {
-      margin: 5px 0;
-      width: 100%;
-    }
-    .action-zone {
-      margin-top: 30px;
+      background: #d9f2ff;
+      border: 1px solid #999;
       display: flex;
-      justify-content: space-around;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 5px;
+      font-size: 12px;
+      overflow: hidden;
     }
-    .action-box {
-      width: 150px;
-      height: 100px;
-      background-color: #ffc107;
-      text-align: center;
-      line-height: 100px;
-      border: 2px dashed #444;
-      border-radius: 10px;
+    .location-label {
+      position: absolute;
+      font-size: 10px;
+      color: #555;
+    }
+    .pallet-box input {
+      width: 100%;
+      font-size: 12px;
+    }
+    .control-btns {
+      display: flex;
+      justify-content: space-between;
+    }
+    .btn { font-size: 10px; padding: 2px 4px; cursor: pointer; background: #444; color: #fff; border: none; border-radius: 3px; }
+    .btn:hover { background: #000; }
+    #add-product-panel {
+      margin-bottom: 1rem;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    #summary-box {
+      background: #eee;
+      padding: 10px;
+      margin-top: 1rem;
+      border: 1px solid #ccc;
     }
   </style>
 </head>
 <body>
-  <h1>Warehouse Visual Inventory</h1>
+  <h2>MAXSA Warehouse Map</h2>
 
-  <!-- Grid Container -->
-  <div class="grid-stack"></div>
-
-  <!-- Action Zones -->
-  <div class="action-zone">
-    <div class="action-box" id="shipped">Shipped</div>
-    <div class="action-box" id="to8412">To 8412 Office</div>
+  <div id="add-product-panel">
+    <input type="text" id="new-item" placeholder="New Item #">
+    <input type="number" id="new-qty" placeholder="Quantity">
+    <button class="btn" onclick="spawnNewPallet()">➕ Add New Product</button>
+    <button class="btn" onclick="calculateTotals()">📊 Get Inventory Summary</button>
   </div>
 
-  <!-- Include GridStack and jQuery -->
-  <script src="https://cdn.jsdelivr.net/npm/gridstack@9.2.2/dist/gridstack-all.js"></script>
+  <div class="grid-stack"></div>
+
+  <div id="summary-box"></div>
+
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const grid = GridStack.init({
-        float: true,
-        cellHeight: 100,
-        disableResize: true
-      });
+    document.addEventListener('DOMContentLoaded', function () {
+      const grid = GridStack.init({ float: true, cellHeight: 80, column: 20, minRow: 25 });
 
-      // Sample locations
-      const locations = [
-        { id: 'A1', item: 'Item #123', qty: 5 },
-        { id: 'B2', item: 'Item #456', qty: 8 },
-        { id: 'C3', item: 'Item #789', qty: 3 }
-      ];
-
-      locations.forEach((loc, index) => {
+      function addPallet(x, y, item = '', qty = '') {
         const el = document.createElement('div');
+        el.classList.add('grid-stack-item');
+        el.setAttribute('gs-x', x);
+        el.setAttribute('gs-y', y);
+        el.setAttribute('gs-width', 1);
+        el.setAttribute('gs-height', 1);
+
         el.innerHTML = `
-          <div class="grid-stack-item-content">
-            <strong>${loc.id}</strong><br>
-            ${loc.item}<br>
-            Qty: <span class="qty">${loc.qty}</span>
-            <div class="menu">
-              <select>
-                <option>Move Type</option>
-                <option>Shipped</option>
-                <option>To 8412 Office</option>
-              </select>
-              <input type="number" placeholder="Qty to move" min="1">
+          <div class="grid-stack-item-content pallet-box">
+            <input type="text" placeholder="Item #" value="${item}" />
+            <input type="number" placeholder="Quantity" value="${qty}" />
+            <div class="control-btns">
+              <button class="btn" onclick="splitPallet(this)">Split</button>
+              <button class="btn" onclick="removePallet(this)">Ship</button>
             </div>
           </div>`;
-        el.classList.add('grid-stack-item');
-        el.setAttribute('gs-x', index);
-        el.setAttribute('gs-y', 0);
-        el.setAttribute('gs-w', 1);
-        el.setAttribute('gs-h', 1);
-        grid.el.appendChild(el);
-        grid.makeWidget(el);
-      });
+
+        grid.addWidget(el);
+      }
+
+      window.splitPallet = function (btn) {
+        const box = btn.closest('.pallet-box');
+        const qtyInput = box.querySelector('input[type="number"]');
+        let qty = parseInt(qtyInput.value);
+        const splitQty = prompt('Quantity to move to new pallet?', Math.floor(qty / 2));
+        const num = parseInt(splitQty);
+        if (!isNaN(num) && num > 0 && num < qty) {
+          qtyInput.value = qty - num;
+          addPallet(0, 5, box.querySelector('input[type="text"]').value, num); // spawn in temporary row
+        }
+      }
+
+      window.removePallet = function (btn) {
+        const item = btn.closest('.grid-stack-item');
+        grid.removeWidget(item);
+      }
+
+      window.spawnNewPallet = function () {
+        const item = document.getElementById('new-item').value;
+        const qty = document.getElementById('new-qty').value;
+        if (item && qty > 0) {
+          addPallet(0, 5, item, qty);
+          document.getElementById('new-item').value = '';
+          document.getElementById('new-qty').value = '';
+        } else {
+          alert("Please enter both item and quantity.");
+        }
+      }
+
+      window.calculateTotals = function () {
+        const widgets = document.querySelectorAll('.pallet-box');
+        const totals = {};
+        widgets.forEach(w => {
+          const item = w.querySelector('input[type="text"]').value;
+          const qty = parseInt(w.querySelector('input[type="number"]').value);
+          if (item && !isNaN(qty)) {
+            totals[item] = (totals[item] || 0) + qty;
+          }
+        });
+        let summaryHTML = '<h4>Total Remaining Quantities:</h4><ul>';
+        for (let item in totals) {
+          summaryHTML += `<li>${item}: ${totals[item]}</li>`;
+        }
+        summaryHTML += '</ul>';
+        document.getElementById('summary-box').innerHTML = summaryHTML;
+      }
+
+      // Add special drop zones
+      addPallet(0, 0, 'DROP ZONE: SHIPPED', '');
+      addPallet(19, 0, 'DROP ZONE: TO 8412', '');
+
+      // Initial temp pallets for demo
+      addPallet(1, 22, '12345', '100');
+      addPallet(2, 22, '67890', '60');
     });
   </script>
 </body>
