@@ -163,7 +163,7 @@
           const label = document.createElement('div');
           label.className = 'label-cell office-zone';
           label.style.left = `${(k % 6) * 80 + 980}px`;
-          label.style.top = `${Math.floor((k - 1) / 6) * 100}px`;
+          label.style.top = `${Math.floor((k - 1) / 6) * 80}px`;
           label.style.width = '80px';
           label.style.height = '40px';
           label.innerText = `Office${k}`;
@@ -173,12 +173,14 @@
        const items = [
         { name: 'Restroom1', left: 980, top: 500 },
         { name: 'Restroom2', left: 1060, top: 500 },
-        { name: 'Shelf1', left: 1200, top: 500 },
-        { name: 'Shelf2', left: 1280, top: 500 },
-        { name: 'Shelf3', left: 1360, top: 580 },
-        { name: 'Shelf4', left: 1420, top: 580 },
-        { name: 'Temporary1', left: 1060, top: 580 },
-        { name: 'Temporary2', left: 980, top: 580 },
+        { name: 'Shelf1', left: 1220, top: 500 },
+        { name: 'Shelf2', left: 1300, top: 500 },
+        { name: 'Shelf3', left: 1380, top: 500 },
+        { name: 'Shelf4', left: 1220, top: 580 },
+        { name: 'Shelf5', left: 1300, top: 580 },
+        { name: 'Shelf6', left: 1380, top: 580 },
+        { name: 'Temporary1', left: 980, top: 580  },
+        { name: 'Temporary2', left: 1060, top: 580},
       ];
       items.forEach(({ name, left, top }) => {
         const label = document.createElement('div');
