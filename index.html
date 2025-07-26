@@ -162,8 +162,8 @@
         for (let k = 1; k <= 30; k++) {
           const label = document.createElement('div');
           label.className = 'label-cell office-zone';
-          label.style.left = `${(k % 6) * 50 + 1000}px`;
-          label.style.top = `${Math.floor((k - 1) / 6) * 80}px`;
+          label.style.left = `${(k % 6) * 80 + 980}px`;
+          label.style.top = `${Math.floor((k - 1) / 6) * 100}px`;
           label.style.width = '80px';
           label.style.height = '40px';
           label.innerText = `Office${k}`;
