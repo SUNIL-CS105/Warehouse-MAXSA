@@ -104,8 +104,8 @@
       font-size: 14px;
     }
     #add-product-panel input::placeholder {
-     color: #bbb; /* Light gray placeholder text */
-    }
+      color: #bbb; /* Light gray placeholder text */
+     }
     #add-product-panel button {
       width: 100%;
       padding: 6px;
@@ -150,7 +150,17 @@
     }
   </style>
 </head>
-<body>
+<script>
+  document.getElementById('add-product-btn').addEventListener('click', function () {
+    // Your logic to add product goes here (if any)
+
+    // Clear the input fields
+    document.getElementById('new-item').value = '';
+    document.getElementById('new-q').value = '';
+  });
+</script>
+
+  <body>
   <h2>MAXSA Warehouse Map</h2>
 
   <div class="grid-stack"></div>
