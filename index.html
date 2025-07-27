@@ -333,7 +333,7 @@
 
         this.splitArrow = document.createElement('div');
         this.splitArrow.className = 'split-arrow';
-        this.splitArrow.innerHTML = '...';
+        this.splitArrow.innerHTML = '◮';
         this.el.appendChild(this.splitArrow);
 
         this.updateText();
@@ -486,8 +486,7 @@
     // --- Adjust all pallets sizes and positions at a location ---
     function adjustPalletSizesAtLocation(location) {
       if(!location) return;
-      const stack = pallets
-ByLocation[location];
+      const stack = palletsByLocation[location];
 if (!stack) return;
 stack.forEach(p => positionPalletInLocation(p));
 }
