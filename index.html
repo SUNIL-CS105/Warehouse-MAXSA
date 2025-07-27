@@ -154,7 +154,7 @@
 
   <div id="add-product-panel">
     <input type="text" id="new-item" placeholder="Item #" />
-    <input type="number" id="new-qty" placeholder="Quantity" min="1" />
+    <input type="number" id="new-q" placeholder="Quantity" min="1" />
     <button id="add-product-btn">➕ Add New Product</button>
   </div>
 
@@ -344,7 +344,7 @@
       }
 
       updateText() {
-        this.el.innerText = `${this.itemId}\nQty: ${this.quantity}`;
+        this.el.innerText = `${this.itemId}\nQ: ${this.quantity}`;
         this.el.appendChild(this.splitArrow);
       }
 
@@ -377,12 +377,12 @@
 
         this.splitArrow.addEventListener('click', e => {
           e.stopPropagation();
-          const splitQty = prompt(`Enter quantity to split from "${this.itemId}" (max ${this.quantity -1}):`, Math.floor(this.quantity/2));
-          const num = parseInt(splitQty);
+          const splitQ = prompt(`Enter quantity to split from "${this.itemId}" (max ${this.quantity -1}):`, Math.floor(this.quantity/2));
+          const num = parseInt(splitQ);
           if (!isNaN(num) && num > 0 && num < this.quantity) {
             this.quantity -= num;
             this.updateText();
-            // Add new pallet with split qty at same location
+            // Add new pallet with split q at same location
             const newPallet = createNewPallet(this.itemId, num, this.location);
             pallets.push(newPallet);
             adjustPalletSizesAtLocation(this.location);
@@ -514,14 +514,14 @@ function makeDropZoneDroppable(zoneEl) {
 // --- Add Product Form Submit ---
 document.getElementById('add-product-btn').addEventListener('click', () => {
   const itemId = document.getElementById('new-item').value.trim();
-  const qty = parseInt(document.getElementById('new-qty').value);
-  if(!itemId || isNaN(qty) || qty < 1) {
+  const q = parseInt(document.getElementById('new-q').value);
+  if(!itemId || isNaN(q) || q < 1) {
     alert("Enter valid Item ID and Quantity");
     return;
   }
-  createNewPallet(itemId, qty, 'New_#');
+  createNewPallet(itemId, q, 'New_#');
   document.getElementById('new-item').value = '';
-  document.getElementById('new-qty').value = '';
+  document.getElementById('new-q').value = '';
 });
 
 // --- Inventory Summary Button ---
