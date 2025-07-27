@@ -476,3 +476,73 @@
     function adjustPalletSizesAtLocation(location) {
       if(!location) return;
       const stack = pallets
+ByLocation[location];
+if (!stack) return;
+stack.forEach(p => positionPalletInLocation(p));
+}
+// --- Drop zone interaction ---
+function makeDropZoneDroppable(zoneEl) {
+  zoneEl.addEventListener('dragover', e => {
+    e.preventDefault();
+    zoneEl.style.outline = '2px dashed #fff';
+  });
+  zoneEl.addEventListener('dragleave', e => {
+    zoneEl.style.outline = '';
+  });
+  zoneEl.addEventListener('drop', e => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    const pallet = pallets.find(p => p.id === id);
+    if(pallet) {
+      pallet.moveToLocation(zoneEl.dataset.location);
+    }
+    zoneEl.style.outline = '';
+  });
+}
+
+// --- Add Product Form Submit ---
+document.getElementById('add-product-btn').addEventListener('click', () => {
+  const itemId = document.getElementById('new-item').value.trim();
+  const qty = parseInt(document.getElementById('new-qty').value);
+  if(!itemId || isNaN(qty) || qty < 1) {
+    alert("Enter valid Item ID and Quantity");
+    return;
+  }
+  createNewPallet(itemId, qty, 'Temporary1');
+  document.getElementById('new-item').value = '';
+  document.getElementById('new-qty').value = '';
+});
+
+// --- Inventory Summary Button ---
+document.getElementById('inventory-summary-panel').addEventListener('click', () => {
+  updateInventorySummary();
+  const output = document.getElementById('inventory-summary-output');
+  output.style.display = output.style.display === 'none' ? 'block' : 'none';
+});
+
+function updateInventorySummary() {
+  const summary = {};
+  pallets.forEach(p => {
+    if(p.location !== 'SHIPPED' && p.location !== 'TO 8412 OFFICE') {
+      summary[p.itemId] = (summary[p.itemId] || 0) + p.quantity;
+    }
+  });
+  const out = document.getElementById('inventory-summary-output');
+  out.innerHTML = '';
+  for(let key in summary) {
+    out.innerHTML += `${key}: ${summary[key]}<br>`;
+  }
+}
+
+// --- Initialization ---
+window.onload = function () {
+  createGridLabels();
+
+  // Sample starting pallets
+  createNewPallet("ITEM001", 6, "Temporary1");
+  createNewPallet("ITEM002", 10, "Temporary1");
+};
+  </script>
+  </body>
+  </html>
+    
