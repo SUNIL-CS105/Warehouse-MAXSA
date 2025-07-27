@@ -9,29 +9,29 @@
     h2 { margin-top: 0; }
     .grid-stack {
       position: relative;
-      width: 1700px;
-      height: 1350px;
-      background: #ADD8E6;
-      border: 2px solid #000000;
+      width: 1600px;
+      height: 800px;
+      background: #fff;
+      border: 2px solid #ccc;
       user-select: none;
     }
     .label-cell {
       position: absolute;
-      border: 1px solid #000000;
+      border: 1px solid #ccc;
       text-align: center;
       padding: 5px;
       font-size: 12px;
-      background-color: #FFFFFF;
+      background-color: #f9f9f9;
       box-sizing: border-box;
     }
     .office-zone, .restroom-zone, .drop-zone {
       font-weight: bold;
     }
     .office-zone {
-      background-color: #FFFFFF;
+      background-color: #ddd;
     }
     .restroom-zone {
-      background-color: #FFFFFF;
+      background-color: #bbb;
     }
     .drop-zone {
       border: 2px dashed white;
@@ -53,7 +53,7 @@
       background: orange;
       color: black;
       font-weight: bold;
-      border: 2px solid #000000;
+      border: 2px solid #555;
       text-align: center;
       cursor: grab;
       user-select: none;
@@ -92,7 +92,7 @@
       border-radius: 6px;
       color: white;
       font-weight: bold;
-      width: 200px;
+      width: 220px;
       box-sizing: border-box;
     }
     #add-product-panel input {
@@ -119,8 +119,8 @@
     }
     #inventory-summary-panel {
       position: absolute;
-      top: 80px;
-      left: 1450px;
+      top: 650px;
+      left: 1250px;
       background: #3498db;
       padding: 10px;
       border-radius: 6px;
@@ -183,7 +183,7 @@
         cellHeight: 50
       },
       restroomsShelvesTemp: [
-        { name: 'Restroom1', left: 980, top: 300 },
+                { name: 'Restroom1', left: 980, top: 300 },
         { name: 'Restroom2', left: 1060, top: 300 },
         { name: 'Shelf1', left: 1220, top: 300 },
         { name: 'Shelf2', left: 1300, top: 300 },
@@ -198,12 +198,7 @@
         { name: 'Temporary4', left: 1220, top: 970 },
         { name: 'Temporary5', left: 1300, top: 1020 },
         { name: 'Temporary6', left: 1380, top: 1070 },
-        { name: 'Temporary7', left: 980, top: 820 },
-        { name: 'Temporary8', left: 1060, top: 870 },
-        { name: 'Temporary9', left: 1140, top: 920 },
-        { name: 'Temporary10', left: 1220, top: 970 },
-        { name: 'Temporary11', left: 1300, top: 1020 },
-        { name: 'Temporary12', left: 1380, top: 1070 },
+        { name: 'Temporary7', left: 980, top: 820 }
       ],
       dropZones: [
         { id: "SHIPPED", name: "SHIPPED", left: 980, top: 450, width: 160, height: 80, color: '#e74c3c' },
@@ -222,28 +217,19 @@
       const container = document.querySelector('.grid-stack');
       // Main grid A1-X11 on left side
       const rows = locations.gridLabels.rows;
-for(let r = 0; r < rows.length; r++) {
-  for(let c = 1; c <= locations.gridLabels.cols; c++) {
-    const div = document.createElement('div');
-    div.className = 'label-cell';
-    div.style.left = `${c * CELL_WIDTH}px`;
-    div.style.top = `${r * CELL_HEIGHT}px`;
-    div.style.width = `${CELL_WIDTH}px`;
-    div.style.height = `${CELL_HEIGHT}px`;
-    
-    const locationName = `${rows[r]}${c}`;
-    div.innerText = locationName;
-    div.dataset.location = locationName;
-
-    // Make column 6 (A6 to X6) yellow
-    if (c === 6) {
-      div.style.backgroundColor = 'yellow';
-    }
-
-    container.appendChild(div);
-  }
-}
-
+      for(let r = 0; r < rows.length; r++) {
+        for(let c = 1; c <= locations.gridLabels.cols; c++) {
+          const div = document.createElement('div');
+          div.className = 'label-cell';
+          div.style.left = `${c * CELL_WIDTH}px`;
+          div.style.top = `${r * CELL_HEIGHT}px`;
+          div.style.width = `${CELL_WIDTH}px`;
+          div.style.height = `${CELL_HEIGHT}px`;
+          div.innerText = `${rows[r]}${c}`;
+          div.dataset.location = `${rows[r]}${c}`;
+          container.appendChild(div);
+        }
+      }
       // Offices top right
       const off = locations.offices;
       for(let i = 1; i <= off.count; i++) {
@@ -330,7 +316,7 @@ for(let r = 0; r < rows.length; r++) {
         this.id = id;
         this.itemId = itemId;
         this.quantity = quantity;
-        this.location = location || "T_NewProduct";
+        this.location = location || "Temporary1";
 
         this.el = document.createElement('div');
         this.el.className = 'pallet';
@@ -342,7 +328,7 @@ for(let r = 0; r < rows.length; r++) {
 
         this.splitArrow = document.createElement('div');
         this.splitArrow.className = 'split-arrow';
-        this.splitArrow.innerHTML = '◮';
+        this.splitArrow.innerHTML = '➗';
         this.el.appendChild(this.splitArrow);
 
         this.updateText();
@@ -436,7 +422,7 @@ for(let r = 0; r < rows.length; r++) {
     }
 
     // --- Helper to create new pallet and add to DOM/pallet list ---
-    function createNewPallet(itemId, quantity, location = "T_NewProduct") {
+    function createNewPallet(itemId, quantity, location = "Temporary1") {
       const id = 'pallet-' + Date.now() + '-' + Math.floor(Math.random()*1000);
       const pallet = new Pallet(id, itemId, quantity, location);
 
@@ -528,7 +514,7 @@ document.getElementById('add-product-btn').addEventListener('click', () => {
     alert("Enter valid Item ID and Quantity");
     return;
   }
-  createNewPallet(itemId, qty, 'T_NewProduct');
+  createNewPallet(itemId, qty, 'Temporary1');
   document.getElementById('new-item').value = '';
   document.getElementById('new-qty').value = '';
 });
