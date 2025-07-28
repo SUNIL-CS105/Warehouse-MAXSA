@@ -286,7 +286,7 @@
     const auth = firebase.auth();
 
     // Connection monitoring
-    database.ref('.info/connected').on('value', (snapshot) => {
+    database.ref('.info/connected').once('value', (snapshot) => {
       if (snapshot.val() === true) {
         console.log("Firebase connection active");
       }
