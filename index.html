@@ -14,6 +14,40 @@
     .hidden { display: none; }
     input, button { width: 100%; margin: 5px 0; padding: 10px; font-size: 16px; }
     .logout-btn { position: fixed; top: 10px; right: 10px; background: red; color: white; border: none; padding: 8px 12px; cursor: pointer; }
+  
+  .label-cell {
+  position: absolute;
+  background-color: #ddd;
+  border: 1px solid #aaa;
+  text-align: center;
+  line-height: 1.2;
+  font-size: 14px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.pallet {
+  position: absolute;
+  background-color: #8e44ad;
+  color: #fff;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 14px;
+  cursor: grab;
+  overflow: hidden;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.split-arrow {
+  font-size: 18px;
+  color: yellow;
+  cursor: pointer;
+  position: absolute;
+  right: 4px;
+  top: 2px;
+}
+  
   </style>
 </head>
 <body>
@@ -42,7 +76,7 @@
 
 <script>
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
+    apiKey: "AIzaSyDgTBFlnjtcbdvuf2l7YUnoHXK9-L4I5MI",
     authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
     projectId: "YOUR_PROJECT_ID",
     storageBucket: "YOUR_PROJECT_ID.appspot.com",
@@ -74,10 +108,11 @@
   }
 
   function initWarehouse() {
-    // --- Constants for locations ---
+     // --- Constants for locations ---
     const CELL_WIDTH = 80;
     const CELL_HEIGHT = 50;
 
+    // Location definitions as per your dimension requirements
     const locations = {
       gridLabels: {
         rows: ['X','W','V','U','T','S','R','Q','P','O','N','M','L','K','J','I','H','G','F','E','D','C','B','A'],
@@ -122,11 +157,16 @@
       ]
     };
 
-    let pallets = [];
+    // --- Variables to hold pallets ---
+    let pallets = []; // array of pallet objects
+
+    // Map location pallets: key = location name, value = array of pallets in that location
     let palletsByLocation = {};
 
+    // --- Create grid labels ---
     function createGridLabels() {
       const container = document.querySelector('.grid-stack');
+      // Main grid A1-X11 on left side
       const rows = locations.gridLabels.rows;
       for(let r = 0; r < rows.length; r++) {
         for(let c = 1; c <= locations.gridLabels.cols; c++) {
@@ -141,6 +181,7 @@
           container.appendChild(div);
         }
       }
+      // Offices top right
       const off = locations.offices;
       for(let i = 1; i <= off.count; i++) {
         const col = i % off.cols;
@@ -155,6 +196,7 @@
         div.dataset.location = `Office${i}`;
         container.appendChild(div);
       }
+      // Restrooms, shelves, temporary middle right
       locations.restroomsShelvesTemp.forEach(item => {
         const div = document.createElement('div');
         div.className = 'label-cell restroom-zone';
@@ -166,6 +208,7 @@
         div.dataset.location = item.name;
         container.appendChild(div);
       });
+      // Drop zones bottom right
       locations.dropZones.forEach(zone => {
         const div = document.createElement('div');
         div.className = 'label-cell drop-zone';
@@ -178,44 +221,283 @@
         div.innerText = zone.name;
         div.dataset.location = zone.name;
         container.appendChild(div);
+
+        // Make drop zones droppable
         makeDropZoneDroppable(div);
       });
     }
 
-    function updateInventorySummary() {
-      const summary = {};
-      pallets.forEach(p => {
-        if(p.location !== 'SHIPPED' && p.location !== 'TO 8412 OFFICE') {
-          summary[p.itemId] = (summary[p.itemId] || 0) + p.quantity;
+    // --- Helper: Find location element under coordinates ---
+    function findLocationUnder(x, y) {
+      const locElems = document.querySelectorAll('.label-cell');
+      for (const el of locElems) {
+        const rect = el.getBoundingClientRect();
+        // Because pallets are positioned relative to container, we use container top/left later
+        // But since pallets are absolutely positioned inside container, and mouse events relative to container,
+        // We'll compute relative positions later in drag/drop
+      }
+      // Instead: We'll find closest location by minimal distance between centers, within threshold.
+      const container = document.querySelector('.grid-stack');
+      const containerRect = container.getBoundingClientRect();
+
+      // Convert page coords to container coords:
+      const relX = x - containerRect.left;
+      const relY = y - containerRect.top;
+
+      let found = null;
+      let minDist = 99999;
+
+      document.querySelectorAll('.label-cell').forEach(el => {
+        const elX = parseFloat(el.style.left) + el.offsetWidth/2;
+        const elY = parseFloat(el.style.top) + el.offsetHeight/2;
+        const dx = relX - elX;
+        const dy = relY - elY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < minDist && dist < 60) { // threshold 60px to snap
+          minDist = dist;
+          found = el.dataset.location;
         }
       });
-      const out = document.getElementById('inventory-summary-output');
-      out.innerHTML = '';
-      for(let key in summary) {
-        out.innerHTML += `${key}: ${summary[key]}<br>`;
-      }
+      return found;
     }
- // Initialize grid on page load
-    createGridLabels();
 
-    document.getElementById('add-product-btn').addEventListener('click', () => {
-      const itemId = document.getElementById('new-item').value.trim();
-      const q = parseInt(document.getElementById('new-q').value);
-      if(!itemId || isNaN(q) || q < 1) {
-        alert("Enter valid Item ID and Quantity");
-        return;
+    // --- Pallet class for easier management ---
+    class Pallet {
+      constructor(id, itemId, quantity, location) {
+        this.id = id;
+        this.itemId = itemId;
+        this.quantity = quantity;
+        this.location = location || "New_#";
+
+        this.el = document.createElement('div');
+        this.el.className = 'pallet';
+        this.el.setAttribute('draggable', 'true');
+        this.el.dataset.id = id;
+        this.el.dataset.itemId = itemId;
+        this.el.dataset.quantity = quantity;
+        this.el.dataset.location = this.location;
+
+        this.splitArrow = document.createElement('div');
+        this.splitArrow.className = 'split-arrow';
+        this.splitArrow.innerHTML = '◮';
+        this.el.appendChild(this.splitArrow);
+
+        this.updateText();
+
+        this.el.appendChild(document.createElement('br'));
+
+        this.addEventListeners();
+        this.updateInventorySummary();
       }
-      // Add product logic goes here
-      document.getElementById('new-item').value = '';
-      document.getElementById('new-q').value = '';
-    });
 
-    document.getElementById('inventory-summary-panel').addEventListener('click', () => {
+      updateText() {
+      this.el.innerHTML = `${this.itemId}<br>Q: ${this.quantity}`;
+      this.el.appendChild(this.splitArrow);
+      }
+
+      addEventListeners() {
+        this.el.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('text/plain', this.id);
+          e.dataTransfer.effectAllowed = "move";
+          this.el.classList.add('dragging');
+          // Store original pos in case revert needed
+          this.dragStartPos = { left: this.el.style.left, top: this.el.style.top };
+        });
+
+        this.el.addEventListener('dragend', e => {
+          this.el.classList.remove('dragging');
+          // After drop, snap to nearest location and resize container pallets
+          const dropX = e.pageX;
+          const dropY = e.pageY;
+          const nearestLocation = findLocationUnder(dropX, dropY);
+
+          if (nearestLocation) {
+            this.moveToLocation(nearestLocation);
+          } else {
+            // revert to original position if no snap location found
+            this.el.style.left = this.dragStartPos.left;
+            this.el.style.top = this.dragStartPos.top;
+          }
+          adjustPalletSizesAtLocation(this.location);
+          adjustPalletSizesAtLocation(this.prevLocation);
+        });
+
+        this.splitArrow.addEventListener('click', e => {
+          e.stopPropagation();
+          const splitQ = prompt(`Enter quantity to split from "${this.itemId}" (max ${this.quantity -1}):`, Math.floor(this.quantity/2));
+          const num = parseInt(splitQ);
+          if (!isNaN(num) && num > 0 && num < this.quantity) {
+            this.quantity -= num;
+            this.updateText();
+            // Add new pallet with split q at same location
+            const newPallet = createNewPallet(this.itemId, num, this.location);
+            pallets.push(newPallet);
+            adjustPalletSizesAtLocation(this.location);
+          }
+        });
+      }
+
+      moveToLocation(newLoc) {
+        if(newLoc === this.location) return; // no change
+        // Remove from old location array
+        if (palletsByLocation[this.location]) {
+          palletsByLocation[this.location] = palletsByLocation[this.location].filter(p => p !== this);
+          if(palletsByLocation[this.location].length === 0) delete palletsByLocation[this.location];
+        }
+        // Add to new location
+        if (!palletsByLocation[newLoc]) palletsByLocation[newLoc] = [];
+        palletsByLocation[newLoc].push(this);
+
+        // Update location property & dataset
+        this.prevLocation = this.location;
+        this.location = newLoc;
+        this.el.dataset.location = newLoc;
+
+        // Position pallet inside location box, stacking pallets vertically
+        positionPalletInLocation(this);
+
+        // Special handling: If dropped into SHIPPED or TO 8412 OFFICE, remove pallet and update quantities
+        if (newLoc === 'SHIPPED' || newLoc === 'TO 8412 OFFICE') {
+          // Remove pallet completely
+          this.remove();
+          pallets = pallets.filter(p => p !== this);
+          // Update summary and pallet sizes
+          updateInventorySummary();
+          adjustPalletSizesAtLocation(newLoc);
+          adjustPalletSizesAtLocation(this.prevLocation);
+        }
+      }
+
+      remove() {
+      if(this.el.parentNode) this.el.parentNode.removeChild(this.el);
       updateInventorySummary();
-      const output = document.getElementById('inventory-summary-output');
-      output.style.display = output.style.display === 'none' ? 'block' : 'none';
-    });
+      }
+
+    }
+
+    // --- Helper to create new pallet and add to DOM/pallet list ---
+    function createNewPallet(itemId, quantity, location = "New_#") {
+      const id = 'pallet-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+      const pallet = new Pallet(id, itemId, quantity, location);
+
+      document.querySelector('.grid-stack').appendChild(pallet.el);
+
+      // Add to pallets array
+      pallets.push(pallet);
+
+      // Add to location mapping
+      if(!palletsByLocation[location]) palletsByLocation[location] = [];
+      palletsByLocation[location].push(pallet);
+
+      // Position the pallet
+      positionPalletInLocation(pallet);
+      adjustPalletSizesAtLocation(location);
+
+      return pallet;
+    }
+
+    // --- Position pallet stacked inside a location ---
+    function positionPalletInLocation(pallet) {
+      const location = pallet.location;
+      // Find the location box element
+      let locEl = null;
+      // For drop zones like SHIPPED & TO 8412 OFFICE, they have IDs
+      if(location === "SHIPPED" || location === "TO 8412 OFFICE") {
+        locEl = document.getElementById(location.replace(/\s/g, '-'));
+      } else {
+        // Otherwise find label-cell by dataset location
+        locEl = Array.from(document.querySelectorAll('.label-cell'))
+          .find(el => el.dataset.location === location);
+      }
+      if(!locEl) return; // no location found
+
+      const left = parseInt(locEl.style.left);
+      const top = parseInt(locEl.style.top);
+      const width = parseInt(locEl.style.width);
+      const height = parseInt(locEl.style.height);
+
+      // Calculate vertical stacking based on how many pallets are in this location
+      const stack = palletsByLocation[location] || [];
+      const idx = stack.indexOf(pallet);
+      const total = stack.length;
+
+      // Size pallets evenly inside location width, full height / total count
+      const palletWidth = width;
+      const palletHeight = Math.floor(height / total);
+
+      // Position pallet: left + 0, top + height_per_pallet * idx
+      pallet.el.style.left = left + 'px';
+      pallet.el.style.top = (top + palletHeight * idx) + 'px';
+      pallet.el.style.width = palletWidth + 'px';
+      pallet.el.style.height = palletHeight + 'px';
+    }
+
+    // --- Adjust all pallets sizes and positions at a location ---
+    function adjustPalletSizesAtLocation(location) {
+      if(!location) return;
+      const stack = palletsByLocation[location];
+if (!stack) return;
+stack.forEach(p => positionPalletInLocation(p));
+}
+// --- Drop zone interaction ---
+function makeDropZoneDroppable(zoneEl) {
+  zoneEl.addEventListener('dragover', e => {
+    e.preventDefault();
+    zoneEl.style.outline = '2px dashed #fff';
+  });
+  zoneEl.addEventListener('dragleave', e => {
+    zoneEl.style.outline = '';
+  });
+  zoneEl.addEventListener('drop', e => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    const pallet = pallets.find(p => p.id === id);
+    if(pallet) {
+      pallet.moveToLocation(zoneEl.dataset.location);
+    }
+    zoneEl.style.outline = '';
+  });
+}
+
+// --- Add Product Form Submit ---
+document.getElementById('add-product-btn').addEventListener('click', () => {
+  const btn = document.getElementById('add-product-btn');
+  btn.disabled = true;
+  const itemId = document.getElementById('new-item').value.trim();
+  const q = parseInt(document.getElementById('new-q').value);
+  if(!itemId || isNaN(q) || q < 1) {
+    alert("Enter valid Item ID and Quantity");
+    btn.disabled = false;
+    return;
   }
+  createNewPallet(itemId, q, 'New_#');
+  document.getElementById('new-item').value = '';
+  document.getElementById('new-q').value = '';
+  btn.disabled = false;
+});
+
+
+function updateInventorySummary() {
+  const summary = {};
+  pallets.forEach(p => {
+    if(p.location !== 'SHIPPED' && p.location !== 'TO 8412 OFFICE') {
+      summary[p.itemId] = (summary[p.itemId] || 0) + p.quantity;
+    }
+  });
+  const out = document.getElementById('inventory-summary-output');
+  out.innerHTML = '';
+  for(let key in summary) {
+    out.innerHTML += `${key}: ${summary[key]}<br>`;
+  }
+}
+
+// --- Initialization ---
+window.onload = function () {
+  createGridLabels();
+
+
+};
+
 </script>
 
 </body>
