@@ -622,17 +622,6 @@
       database.ref('warehouse/pallets').set(data);
     }
 
-    function saveWarehouseData(userId) {
-      const data = {
-        pallets: pallets.map(p => ({
-          itemId: p.itemId,
-          quantity: p.quantity,
-          location: p.location
-        }))
-      };
-      database.ref(`users/${userId}/warehouse`).set(data)
-        .catch(error => console.error("Error saving data:", error));
-    }
 
     // --- Event Listeners ---
     function setupEventListeners() {
