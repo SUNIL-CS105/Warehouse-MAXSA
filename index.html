@@ -589,11 +589,10 @@
     }
 
     // --- Firebase Functions ---
-    function loadWarehouseData(userId) {
-      document.getElementById('loading-indicator').style.display = 'flex';
-      
-      const ref = database.ref(`users/${userId}/warehouse`);
-      ref.once('value').then(snapshot => {
+    // Load shared warehouse data (live updates)
+    function loadWarehouseData() {
+      const ref = database.ref('warehouse/pallets');
+      ref.on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
           // Clear existing pallets
@@ -601,17 +600,26 @@
           pallets = [];
           palletsByLocation = {};
           
-          // Recreate pallets from saved data
-          data.pallets.forEach(palletData => {
+          // Recreate pallets from shared data
+          Object.values(data).forEach(palletData => {
             createNewPallet(palletData.itemId, palletData.quantity, palletData.location);
           });
         }
-        document.getElementById('loading-indicator').style.display = 'none';
-      }).catch(error => {
-        console.error("Error loading data:", error);
-        document.getElementById('loading-indicator').style.display = 'none';
-        alert("Error loading warehouse data");
       });
+    }
+    
+    // Save changes to shared warehouse
+    function saveWarehouseData() {
+      const data = {};
+      pallets.forEach(p => {
+        data[p.id] = {
+          itemId: p.itemId,
+          quantity: p.quantity,
+          location: p.location
+        };
+      });
+      
+      database.ref('warehouse/pallets').set(data);
     }
 
     function saveWarehouseData(userId) {
