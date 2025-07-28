@@ -19,6 +19,7 @@
       border: 2px solid #000000;
       user-select: none;
       contain: strict; /* Improves rendering performance */
+      transform-origin: 0 0; /* Helps with zoom behavior */
     }
     .label-cell {
       position: absolute;
@@ -28,7 +29,7 @@
       font-size: 12px;
       background-color: #FFFFFF;
       box-sizing: border-box;
-      pointer-events: none; /* Let pallets handle events */
+      pointer-events: auto; /* Let pallets handle events */
     }
     .office-zone, .restroom-zone, .drop-zone {
       font-weight: bold;
@@ -47,6 +48,7 @@
       justify-content: center;
       font-size: 14px;
       cursor: default;
+      pointer-events: auto; /* Ensure they receive events */
     }
     .drop-zone#SHIPPED {
       background-color: #e74c3c;
@@ -70,6 +72,8 @@
       will-change: transform; /* Improves drag performance */
       backface-visibility: hidden;
       transform: translateZ(0);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      will-change: transform;
     }
     .pallet.dragging {
       opacity: 0.6;
@@ -360,28 +364,37 @@
       }
 
       addEventListeners() {
+      // Drag start handler
       this.el.addEventListener('dragstart', e => {
+        isDragging = true; // Global flag to prevent unwanted updates
         e.dataTransfer.setData('text/plain', this.id);
         this.el.style.zIndex = '1000';
         this.el.style.pointerEvents = 'none';
+        this.el.style.transform = 'scale(1.05)'; // Visual feedback
+        this.el.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)'; // Visual feedback
+        this.el.classList.add('dragging-active'); // Additional visual cue
       });
     
+      // Drag end handler
       this.el.addEventListener('dragend', e => {
+        isDragging = false; // Release the global flag
         this.el.style.zIndex = '';
         this.el.style.pointerEvents = '';
-    
-        const container = document.querySelector('.grid-stack');
-        const containerRect = container.getBoundingClientRect();
-        const dropX = e.clientX - containerRect.left;
-        const dropY = e.clientY - containerRect.top;
-    
-        const nearestLocation = findLocationUnder(e.clientX, e.clientY);
-        if (nearestLocation) {
-          this.moveToLocation(nearestLocation);
-        }
-        adjustPalletSizesAtLocation(this.location);
+        this.el.style.transform = '';
+        this.el.style.boxShadow = '';
+        this.el.classList.remove('dragging-active');
+        
+        // Small delay ensures proper positioning
+        setTimeout(() => {
+          const nearestLocation = findLocationUnder(e.clientX, e.clientY);
+          if (nearestLocation && nearestLocation !== this.location) {
+            this.moveToLocation(nearestLocation);
+          }
+          adjustPalletSizesAtLocation(this.location);
+        }, 10);
       });
     
+      // Split arrow handler (unchanged from yours)
       this.splitArrow.addEventListener('click', e => {
         e.stopPropagation();
         const splitQ = prompt(`Enter quantity to split from "${this.itemId}" (max ${this.quantity - 1}):`, Math.floor(this.quantity / 2));
@@ -395,7 +408,6 @@
         }
       });
     }
-
       moveToLocation(newLoc) {
         if(newLoc === this.location) return;
         
@@ -666,22 +678,25 @@ let isDragging = false;
     return hash;
   }
     // Save changes to shared warehouse
-     function saveWarehouseData() {
-      // Only save if there are actual changes
-      const newData = {};
+    function saveWarehouseData() {
+      if (isDragging) return; // Don't save during drag operations
+      
+      const data = {};
       pallets.forEach(p => {
-        newData[p.id] = {
+        data[p.id] = {
           itemId: p.itemId,
           quantity: p.quantity,
           location: p.location
         };
       });
       
-      const newDataString = JSON.stringify(newData);
-      if (newDataString !== this.lastSavedData) {
-        this.lastSavedData = newDataString;
-        database.ref('warehouse/pallets').set(newData)
-          .catch(error => console.error("Save error:", error));
+      const dataString = JSON.stringify(data);
+      const newHash = hashCode(dataString);
+      
+      if (newHash !== lastDataHash) {
+        lastDataHash = newHash;
+        database.ref('warehouse/pallets').set(data)
+          .catch(err => console.error("Save error:", err));
       }
     }
 
