@@ -3,121 +3,277 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=0.9" />
-  <title>MAXSA Warehouse Map with Login</title>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <title>MAXSA Warehouse Map with Resizable Pallets</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <style>
     body { font-family: Arial; background: #f5f5f5; margin:0; padding:1rem; }
     h2 { margin-top: 0; }
-    .login-container { max-width: 400px; margin: auto; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-    .hidden { display: none; }
-    input, button { width: 100%; margin: 5px 0; padding: 10px; font-size: 16px; }
-    .logout-btn { position: fixed; top: 10px; right: 10px; background: red; color: white; border: none; padding: 8px 12px; cursor: pointer; }
-  
-  .label-cell {
-  position: absolute;
-  background-color: #ddd;
-  border: 1px solid #aaa;
-  text-align: center;
-  line-height: 1.2;
-  font-size: 14px;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.pallet {
-  position: absolute;
-  background-color: #8e44ad;
-  color: #fff;
-  border-radius: 6px;
-  text-align: center;
-  font-size: 14px;
-  cursor: grab;
-  overflow: hidden;
-  padding: 2px;
-  box-sizing: border-box;
-}
-
-.split-arrow {
-  font-size: 18px;
-  color: yellow;
-  cursor: pointer;
-  position: absolute;
-  right: 4px;
-  top: 2px;
-}
-  
+    .grid-stack {
+      position: relative;
+      width: 1730px;
+      height: 1350px;
+      background: #ADD8E6;
+      border: 2px solid #000000;
+      user-select: none;
+    }
+    .label-cell {
+      position: absolute;
+      border: 1px solid #000000;
+      text-align: center;
+      padding: 5px;
+      font-size: 12px;
+      background-color: #FFFFFF;
+      box-sizing: border-box;
+    }
+    .office-zone, .restroom-zone, .drop-zone {
+      font-weight: bold;
+    }
+    .office-zone {
+      background-color: #FFFFFF;
+    }
+    .restroom-zone {
+      background-color: #FFFFFF;
+    }
+    .drop-zone {
+      border: 2px dashed white;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: default;
+    }
+    .drop-zone#SHIPPED {
+      background-color: #e74c3c;
+    }
+    .drop-zone#TO-8412-OFFICE {
+      background-color: #2980b9;
+    }
+    .pallet {
+      position: absolute;
+      background: orange;
+      color: black;
+      font-weight: bold;
+      border: 2px solid #000000;
+      text-align: center;
+      cursor: grab;
+      user-select: none;
+      box-sizing: border-box;
+      padding: 4px 2px 10px 2px;
+      font-size: 12px;
+      white-space: pre-line;
+    }
+    .pallet.dragging {
+      opacity: 0.6;
+      cursor: grabbing;
+      z-index: 1000;
+    }
+    .split-arrow {
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      background: black;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
+      border-radius: 3px;
+      cursor: pointer;
+      user-select: none;
+      z-index: 10;
+    }
+    #add-product-panel {
+      position: absolute;
+      top: 650px;
+      left: 1000px;
+      background: #27ae60;
+      padding: 10px;
+      border-radius: 6px;
+      color: white;
+      font-weight: bold;
+      width: 200px;
+      box-sizing: border-box;
+    }
+    #add-product-panel input {
+      width: calc(100% - 12px);
+      margin-bottom: 6px;
+      padding: 5px;
+      border: none;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+    #add-product-panel input::placeholder {
+      color: #bbb;
+    }
+    #add-product-panel button {
+      width: 100%;
+      padding: 6px;
+      font-weight: bold;
+      font-size: 14px;
+      background: #2ecc71;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      color: white;
+    }
+    #add-product-panel button:hover {
+      background: #27ae60;
+    }
+    #inventory-summary-panel {
+      position: absolute;
+      top: 80px;
+      left: 1480px;
+      background: #3498db;
+      padding: 10px;
+      border-radius: 6px;
+      color: white;
+      font-weight: bold;
+      width: 220px;
+      box-sizing: border-box;
+      font-size: 14px;
+      cursor: pointer;
+      text-align: center;
+      user-select: none;
+    }
+    #inventory-summary-output {
+      max-height: 120px;
+      overflow-y: auto;
+      margin-top: 6px;
+      font-weight: normal;
+      font-size: 13px;
+      background: rgba(255 255 255 / 0.2);
+      padding: 6px;
+      border-radius: 4px;
+      text-align: left;
+      white-space: nowrap;
+    }
+    /* Login styles */
+    #login-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .login-box {
+      background: #f5f5f5;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    .login-box input {
+      width: 100%;
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      box-sizing: border-box;
+    }
+    .login-box button {
+      width: 100%;
+      padding: 0.5rem;
+      background: #27ae60;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+    #logout-btn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 0.5rem 1rem;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      display: none;
+      z-index: 1001;
+    }
+    #loading-indicator {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 1.5rem;
+      z-index: 1002;
+      display: none;
+    }
   </style>
 </head>
 <body>
-
-<div id="login" class="login-container">
-  <h2>Login to Warehouse</h2>
-  <input type="email" id="email" placeholder="Email" />
-  <input type="password" id="password" placeholder="Password" />
-  <button onclick="login()">Login</button>
-</div>
-
-<div id="app" class="hidden">
-  <button class="logout-btn" onclick="logout()">Logout</button>
-  <h2>MAXSA Warehouse Map</h2>
-  <div class="grid-stack"></div>
-  <div id="add-product-panel">
-    <input type="text" id="new-item" placeholder="Item #" />
-    <input type="number" id="new-q" placeholder="Quantity" min="1" />
-    <button id="add-product-btn">➕ Add New Product</button>
+  <!-- Login UI -->
+  <div id="login-container">
+    <div class="login-box">
+      <h2>Warehouse Login</h2>
+      <input type="email" id="email" placeholder="Email">
+      <input type="password" id="password" placeholder="Password">
+      <button id="login-btn">Login</button>
+    </div>
   </div>
-  <div id="inventory-summary-panel" title="Show total quantities of all products">
-    📊 Show Inventory Summary
-    <div id="inventory-summary-output" style="display:none;"></div>
-  </div>
-</div>
 
-<script>
-  const firebaseConfig = {
+  <!-- Loading Indicator -->
+  <div id="loading-indicator">Loading warehouse data...</div>
+
+  <!-- Logout Button -->
+  <button id="logout-btn">Logout</button>
+
+  <!-- Main Warehouse App -->
+  <div id="warehouse-app" style="display:none;">
+    <h2>MAXSA Warehouse Map</h2>
+    <div class="grid-stack"></div>
+
+    <div id="add-product-panel">
+      <input type="text" id="new-item" placeholder="Item #" />
+      <input type="number" id="new-q" placeholder="Quantity" min="1" />
+      <button id="add-product-btn">➕ Add New Product</button>
+    </div>
+
+    <div id="inventory-summary-panel" title="Show total quantities of all products (excluding shipped and To 8412 Office)">
+      📊 Show Inventory Summary
+      <div id="inventory-summary-output" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    // --- Firebase Configuration ---
+    const firebaseConfig = {
     apiKey: "AIzaSyDgTBFlnjtcbdvuf2l7YUnoHXK9-L4I5MI",
     authDomain: "warehouse-maxsa.firebaseapp.com",
+    databaseURL: "https://warehouse-maxsa-default-rtdb.firebaseio.com",
     projectId: "warehouse-maxsa",
-    storageBucket: "warehouse-maxsa.appspot.com",
+    storageBucket: "warehouse-maxsa.firebasestorage.app",
     messagingSenderId: "978214247804",
-    appId: "1:978214247804:web:aa785914ee177d74ba98f9",
-    databaseURL: "https://warehouse-maxsa-default-rtdb.firebaseio.com"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.database();
+    appId: "1:978214247804:web:aa785914ee177d74ba98f9"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
 
-function login() {
-  console.log("Login button clicked"); // ADD THIS
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  auth.signInWithEmailAndPassword(email, password)
-    .then(() => {
-      document.getElementById('login').classList.add('hidden');
-      document.getElementById('app').classList.remove('hidden');
-      initWarehouse();
-    })
-    .catch(error => {
-      alert(error.message);
-      console.error(error); // ADD THIS
-    });
-}
-
-
-  function logout() {
-    auth.signOut().then(() => {
-      document.getElementById('app').classList.add('hidden');
-      document.getElementById('login').classList.remove('hidden');
-    });
-  }
-
-  function initWarehouse() {
-     // --- Constants for locations ---
+    // --- Warehouse App Variables ---
     const CELL_WIDTH = 80;
     const CELL_HEIGHT = 50;
+    let pallets = []; // array of pallet objects
+    let palletsByLocation = {}; // key = location name, value = array of pallets
 
-    // Location definitions as per your dimension requirements
+    // Location definitions
     const locations = {
       gridLabels: {
         rows: ['X','W','V','U','T','S','R','Q','P','O','N','M','L','K','J','I','H','G','F','E','D','C','B','A'],
@@ -162,13 +318,106 @@ function login() {
       ]
     };
 
-    // --- Variables to hold pallets ---
-    let pallets = []; // array of pallet objects
+    // --- Pallet Class ---
+    class Pallet {
+      constructor(id, itemId, quantity, location) {
+        this.id = id;
+        this.itemId = itemId;
+        this.quantity = quantity;
+        this.location = location || "New_#";
 
-    // Map location pallets: key = location name, value = array of pallets in that location
-    let palletsByLocation = {};
+        this.el = document.createElement('div');
+        this.el.className = 'pallet';
+        this.el.setAttribute('draggable', 'true');
+        this.el.dataset.id = id;
+        this.el.dataset.itemId = itemId;
+        this.el.dataset.quantity = quantity;
+        this.el.dataset.location = this.location;
 
-    // --- Create grid labels ---
+        this.splitArrow = document.createElement('div');
+        this.splitArrow.className = 'split-arrow';
+        this.splitArrow.innerHTML = '◮';
+        this.el.appendChild(this.splitArrow);
+
+        this.updateText();
+        this.addEventListeners();
+      }
+
+      updateText() {
+        this.el.innerHTML = `${this.itemId}<br>Q: ${this.quantity}`;
+        this.el.appendChild(this.splitArrow);
+      }
+
+      addEventListeners() {
+        this.el.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('text/plain', this.id);
+          e.dataTransfer.effectAllowed = "move";
+          this.el.classList.add('dragging');
+          this.dragStartPos = { left: this.el.style.left, top: this.el.style.top };
+        });
+
+        this.el.addEventListener('dragend', e => {
+          this.el.classList.remove('dragging');
+          const dropX = e.pageX;
+          const dropY = e.pageY;
+          const nearestLocation = findLocationUnder(dropX, dropY);
+
+          if (nearestLocation) {
+            this.moveToLocation(nearestLocation);
+          } else {
+            this.el.style.left = this.dragStartPos.left;
+            this.el.style.top = this.dragStartPos.top;
+          }
+          adjustPalletSizesAtLocation(this.location);
+          adjustPalletSizesAtLocation(this.prevLocation);
+        });
+
+        this.splitArrow.addEventListener('click', e => {
+          e.stopPropagation();
+          const splitQ = prompt(`Enter quantity to split from "${this.itemId}" (max ${this.quantity -1}):`, Math.floor(this.quantity/2));
+          const num = parseInt(splitQ);
+          if (!isNaN(num) && num > 0 && num < this.quantity) {
+            this.quantity -= num;
+            this.updateText();
+            const newPallet = createNewPallet(this.itemId, num, this.location);
+            pallets.push(newPallet);
+            adjustPalletSizesAtLocation(this.location);
+          }
+        });
+      }
+
+      moveToLocation(newLoc) {
+        if(newLoc === this.location) return;
+        
+        if (palletsByLocation[this.location]) {
+          palletsByLocation[this.location] = palletsByLocation[this.location].filter(p => p !== this);
+          if(palletsByLocation[this.location].length === 0) delete palletsByLocation[this.location];
+        }
+        
+        if (!palletsByLocation[newLoc]) palletsByLocation[newLoc] = [];
+        palletsByLocation[newLoc].push(this);
+
+        this.prevLocation = this.location;
+        this.location = newLoc;
+        this.el.dataset.location = newLoc;
+
+        positionPalletInLocation(this);
+
+        if (newLoc === 'SHIPPED' || newLoc === 'TO 8412 OFFICE') {
+          this.remove();
+          pallets = pallets.filter(p => p !== this);
+          updateInventorySummary();
+          adjustPalletSizesAtLocation(newLoc);
+          adjustPalletSizesAtLocation(this.prevLocation);
+        }
+      }
+
+      remove() {
+        if(this.el.parentNode) this.el.parentNode.removeChild(this.el);
+      }
+    }
+
+    // --- Core Warehouse Functions ---
     function createGridLabels() {
       const container = document.querySelector('.grid-stack');
       // Main grid A1-X11 on left side
@@ -207,8 +456,8 @@ function login() {
         div.className = 'label-cell restroom-zone';
         div.style.left = `${item.left}px`;
         div.style.top = `${item.top}px`;
-        div.style.width = `${CELL_WIDTH}px`;
-        div.style.height = `${CELL_HEIGHT}px`;
+        div.style.width = `${item.width || CELL_WIDTH}px`;
+        div.style.height = `${item.height || CELL_HEIGHT}px`;
         div.innerText = item.name;
         div.dataset.location = item.name;
         container.appendChild(div);
@@ -226,26 +475,13 @@ function login() {
         div.innerText = zone.name;
         div.dataset.location = zone.name;
         container.appendChild(div);
-
-        // Make drop zones droppable
         makeDropZoneDroppable(div);
       });
     }
 
-    // --- Helper: Find location element under coordinates ---
     function findLocationUnder(x, y) {
-      const locElems = document.querySelectorAll('.label-cell');
-      for (const el of locElems) {
-        const rect = el.getBoundingClientRect();
-        // Because pallets are positioned relative to container, we use container top/left later
-        // But since pallets are absolutely positioned inside container, and mouse events relative to container,
-        // We'll compute relative positions later in drag/drop
-      }
-      // Instead: We'll find closest location by minimal distance between centers, within threshold.
       const container = document.querySelector('.grid-stack');
       const containerRect = container.getBoundingClientRect();
-
-      // Convert page coords to container coords:
       const relX = x - containerRect.left;
       const relY = y - containerRect.top;
 
@@ -258,7 +494,7 @@ function login() {
         const dx = relX - elX;
         const dy = relY - elY;
         const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < minDist && dist < 60) { // threshold 60px to snap
+        if (dist < minDist && dist < 60) {
           minDist = dist;
           found = el.dataset.location;
         }
@@ -266,244 +502,198 @@ function login() {
       return found;
     }
 
-    // --- Pallet class for easier management ---
-    class Pallet {
-      constructor(id, itemId, quantity, location) {
-        this.id = id;
-        this.itemId = itemId;
-        this.quantity = quantity;
-        this.location = location || "New_#";
-
-        this.el = document.createElement('div');
-        this.el.className = 'pallet';
-        this.el.setAttribute('draggable', 'true');
-        this.el.dataset.id = id;
-        this.el.dataset.itemId = itemId;
-        this.el.dataset.quantity = quantity;
-        this.el.dataset.location = this.location;
-
-        this.splitArrow = document.createElement('div');
-        this.splitArrow.className = 'split-arrow';
-        this.splitArrow.innerHTML = '◮';
-        this.el.appendChild(this.splitArrow);
-
-        this.updateText();
-
-        this.el.appendChild(document.createElement('br'));
-
-        this.addEventListeners();
-        this.updateInventorySummary();
-      }
-
-      updateText() {
-      this.el.innerHTML = `${this.itemId}<br>Q: ${this.quantity}`;
-      this.el.appendChild(this.splitArrow);
-      }
-
-      addEventListeners() {
-        this.el.addEventListener('dragstart', e => {
-          e.dataTransfer.setData('text/plain', this.id);
-          e.dataTransfer.effectAllowed = "move";
-          this.el.classList.add('dragging');
-          // Store original pos in case revert needed
-          this.dragStartPos = { left: this.el.style.left, top: this.el.style.top };
-        });
-
-        this.el.addEventListener('dragend', e => {
-          this.el.classList.remove('dragging');
-          // After drop, snap to nearest location and resize container pallets
-          const dropX = e.pageX;
-          const dropY = e.pageY;
-          const nearestLocation = findLocationUnder(dropX, dropY);
-
-          if (nearestLocation) {
-            this.moveToLocation(nearestLocation);
-          } else {
-            // revert to original position if no snap location found
-            this.el.style.left = this.dragStartPos.left;
-            this.el.style.top = this.dragStartPos.top;
-          }
-          adjustPalletSizesAtLocation(this.location);
-          adjustPalletSizesAtLocation(this.prevLocation);
-        });
-
-        this.splitArrow.addEventListener('click', e => {
-          e.stopPropagation();
-          const splitQ = prompt(`Enter quantity to split from "${this.itemId}" (max ${this.quantity -1}):`, Math.floor(this.quantity/2));
-          const num = parseInt(splitQ);
-          if (!isNaN(num) && num > 0 && num < this.quantity) {
-            this.quantity -= num;
-            this.updateText();
-            // Add new pallet with split q at same location
-            const newPallet = createNewPallet(this.itemId, num, this.location);
-            pallets.push(newPallet);
-            adjustPalletSizesAtLocation(this.location);
-          }
-        });
-      }
-
-      moveToLocation(newLoc) {
-        if(newLoc === this.location) return; // no change
-        // Remove from old location array
-        if (palletsByLocation[this.location]) {
-          palletsByLocation[this.location] = palletsByLocation[this.location].filter(p => p !== this);
-          if(palletsByLocation[this.location].length === 0) delete palletsByLocation[this.location];
-        }
-        // Add to new location
-        if (!palletsByLocation[newLoc]) palletsByLocation[newLoc] = [];
-        palletsByLocation[newLoc].push(this);
-
-        // Update location property & dataset
-        this.prevLocation = this.location;
-        this.location = newLoc;
-        this.el.dataset.location = newLoc;
-
-        // Position pallet inside location box, stacking pallets vertically
-        positionPalletInLocation(this);
-
-        // Special handling: If dropped into SHIPPED or TO 8412 OFFICE, remove pallet and update quantities
-        if (newLoc === 'SHIPPED' || newLoc === 'TO 8412 OFFICE') {
-          // Remove pallet completely
-          this.remove();
-          pallets = pallets.filter(p => p !== this);
-          // Update summary and pallet sizes
-          updateInventorySummary();
-          adjustPalletSizesAtLocation(newLoc);
-          adjustPalletSizesAtLocation(this.prevLocation);
-        }
-      }
-
-      remove() {
-      if(this.el.parentNode) this.el.parentNode.removeChild(this.el);
-      updateInventorySummary();
-      }
-
-    }
-
-    // --- Helper to create new pallet and add to DOM/pallet list ---
     function createNewPallet(itemId, quantity, location = "New_#") {
       const id = 'pallet-' + Date.now() + '-' + Math.floor(Math.random()*1000);
       const pallet = new Pallet(id, itemId, quantity, location);
 
       document.querySelector('.grid-stack').appendChild(pallet.el);
-
-      // Add to pallets array
       pallets.push(pallet);
 
-      // Add to location mapping
       if(!palletsByLocation[location]) palletsByLocation[location] = [];
       palletsByLocation[location].push(pallet);
 
-      // Position the pallet
       positionPalletInLocation(pallet);
       adjustPalletSizesAtLocation(location);
 
       return pallet;
     }
 
-    // --- Position pallet stacked inside a location ---
     function positionPalletInLocation(pallet) {
       const location = pallet.location;
-      // Find the location box element
       let locEl = null;
-      // For drop zones like SHIPPED & TO 8412 OFFICE, they have IDs
+      
       if(location === "SHIPPED" || location === "TO 8412 OFFICE") {
         locEl = document.getElementById(location.replace(/\s/g, '-'));
       } else {
-        // Otherwise find label-cell by dataset location
         locEl = Array.from(document.querySelectorAll('.label-cell'))
           .find(el => el.dataset.location === location);
       }
-      if(!locEl) return; // no location found
+      if(!locEl) return;
 
       const left = parseInt(locEl.style.left);
       const top = parseInt(locEl.style.top);
       const width = parseInt(locEl.style.width);
       const height = parseInt(locEl.style.height);
 
-      // Calculate vertical stacking based on how many pallets are in this location
       const stack = palletsByLocation[location] || [];
       const idx = stack.indexOf(pallet);
       const total = stack.length;
 
-      // Size pallets evenly inside location width, full height / total count
       const palletWidth = width;
       const palletHeight = Math.floor(height / total);
 
-      // Position pallet: left + 0, top + height_per_pallet * idx
       pallet.el.style.left = left + 'px';
       pallet.el.style.top = (top + palletHeight * idx) + 'px';
       pallet.el.style.width = palletWidth + 'px';
       pallet.el.style.height = palletHeight + 'px';
     }
 
-    // --- Adjust all pallets sizes and positions at a location ---
     function adjustPalletSizesAtLocation(location) {
       if(!location) return;
       const stack = palletsByLocation[location];
-if (!stack) return;
-stack.forEach(p => positionPalletInLocation(p));
-}
-// --- Drop zone interaction ---
-function makeDropZoneDroppable(zoneEl) {
-  zoneEl.addEventListener('dragover', e => {
-    e.preventDefault();
-    zoneEl.style.outline = '2px dashed #fff';
-  });
-  zoneEl.addEventListener('dragleave', e => {
-    zoneEl.style.outline = '';
-  });
-  zoneEl.addEventListener('drop', e => {
-    e.preventDefault();
-    const id = e.dataTransfer.getData('text/plain');
-    const pallet = pallets.find(p => p.id === id);
-    if(pallet) {
-      pallet.moveToLocation(zoneEl.dataset.location);
+      if (!stack) return;
+      stack.forEach(p => positionPalletInLocation(p));
     }
-    zoneEl.style.outline = '';
-  });
-}
 
-// --- Add Product Form Submit ---
-document.getElementById('add-product-btn').addEventListener('click', () => {
-  const btn = document.getElementById('add-product-btn');
-  btn.disabled = true;
-  const itemId = document.getElementById('new-item').value.trim();
-  const q = parseInt(document.getElementById('new-q').value);
-  if(!itemId || isNaN(q) || q < 1) {
-    alert("Enter valid Item ID and Quantity");
-    btn.disabled = false;
-    return;
-  }
-  createNewPallet(itemId, q, 'New_#');
-  document.getElementById('new-item').value = '';
-  document.getElementById('new-q').value = '';
-  btn.disabled = false;
-});
-
-
-function updateInventorySummary() {
-  const summary = {};
-  pallets.forEach(p => {
-    if(p.location !== 'SHIPPED' && p.location !== 'TO 8412 OFFICE') {
-      summary[p.itemId] = (summary[p.itemId] || 0) + p.quantity;
+    function makeDropZoneDroppable(zoneEl) {
+      zoneEl.addEventListener('dragover', e => {
+        e.preventDefault();
+        zoneEl.style.outline = '2px dashed #fff';
+      });
+      zoneEl.addEventListener('dragleave', e => {
+        zoneEl.style.outline = '';
+      });
+      zoneEl.addEventListener('drop', e => {
+        e.preventDefault();
+        const id = e.dataTransfer.getData('text/plain');
+        const pallet = pallets.find(p => p.id === id);
+        if(pallet) {
+          pallet.moveToLocation(zoneEl.dataset.location);
+        }
+        zoneEl.style.outline = '';
+      });
     }
-  });
-  const out = document.getElementById('inventory-summary-output');
-  out.innerHTML = '';
-  for(let key in summary) {
-    out.innerHTML += `${key}: ${summary[key]}<br>`;
-  }
-}
 
-// --- Initialization ---
-window.onload = function () {
-  createGridLabels();
-};
-}
-</script>
+    function updateInventorySummary() {
+      const summary = {};
+      pallets.forEach(p => {
+        if(p.location !== 'SHIPPED' && p.location !== 'TO 8412 OFFICE') {
+          summary[p.itemId] = (summary[p.itemId] || 0) + p.quantity;
+        }
+      });
+      const out = document.getElementById('inventory-summary-output');
+      out.innerHTML = '';
+      for(let key in summary) {
+        out.innerHTML += `${key}: ${summary[key]}<br>`;
+      }
+    }
 
+    // --- Firebase Functions ---
+    function loadWarehouseData(userId) {
+      document.getElementById('loading-indicator').style.display = 'flex';
+      
+      const ref = database.ref(`users/${userId}/warehouse`);
+      ref.once('value').then(snapshot => {
+        const data = snapshot.val();
+        if (data) {
+          // Clear existing pallets
+          pallets.forEach(p => p.remove());
+          pallets = [];
+          palletsByLocation = {};
+          
+          // Recreate pallets from saved data
+          data.pallets.forEach(palletData => {
+            createNewPallet(palletData.itemId, palletData.quantity, palletData.location);
+          });
+        }
+        document.getElementById('loading-indicator').style.display = 'none';
+      }).catch(error => {
+        console.error("Error loading data:", error);
+        document.getElementById('loading-indicator').style.display = 'none';
+        alert("Error loading warehouse data");
+      });
+    }
+
+    function saveWarehouseData(userId) {
+      const data = {
+        pallets: pallets.map(p => ({
+          itemId: p.itemId,
+          quantity: p.quantity,
+          location: p.location
+        }))
+      };
+      database.ref(`users/${userId}/warehouse`).set(data)
+        .catch(error => console.error("Error saving data:", error));
+    }
+
+    // --- Event Listeners ---
+    function setupEventListeners() {
+      document.getElementById('add-product-btn').addEventListener('click', () => {
+        const itemId = document.getElementById('new-item').value.trim();
+        const q = parseInt(document.getElementById('new-q').value);
+        if(!itemId || isNaN(q) || q < 1) {
+          alert("Enter valid Item ID and Quantity");
+          return;
+        }
+        createNewPallet(itemId, q, 'New_#');
+        document.getElementById('new-item').value = '';
+        document.getElementById('new-q').value = '';
+      });
+
+      document.getElementById('inventory-summary-panel').addEventListener('click', () => {
+        updateInventorySummary();
+        const output = document.getElementById('inventory-summary-output');
+        output.style.display = output.style.display === 'none' ? 'block' : 'none';
+      });
+    }
+
+    // --- Authentication ---
+    function initAuth() {
+      firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+          // User is signed in
+          document.getElementById('login-container').style.display = 'none';
+          document.getElementById('warehouse-app').style.display = 'block';
+          document.getElementById('logout-btn').style.display = 'block';
+          loadWarehouseData(user.uid);
+          initWarehouseApp();
+        } else {
+          // No user is signed in
+          document.getElementById('login-container').style.display = 'flex';
+          document.getElementById('warehouse-app').style.display = 'none';
+          document.getElementById('logout-btn').style.display = 'none';
+        }
+      });
+    }
+
+    function initWarehouseApp() {
+      createGridLabels();
+      setupEventListeners();
+      
+      // Auto-save every 30 seconds
+      setInterval(() => {
+        const user = firebase.auth().currentUser;
+        if (user) saveWarehouseData(user.uid);
+      }, 30000);
+    }
+
+    // --- Initialize App ---
+    window.onload = function() {
+      // Set up login/logout
+      document.getElementById('login-btn').addEventListener('click', () => {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        firebase.auth().signInWithEmailAndPassword(email, password)
+          .catch(error => alert(error.message));
+      });
+
+      document.getElementById('logout-btn').addEventListener('click', () => {
+        firebase.auth().signOut();
+      });
+
+      // Initialize authentication
+      initAuth();
+    };
+  </script>
 </body>
 </html>
-
-  
