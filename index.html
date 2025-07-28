@@ -88,17 +88,22 @@
   const auth = firebase.auth();
   const db = firebase.database();
 
-  function login() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    auth.signInWithEmailAndPassword(email, password)
-      .then(() => {
-        document.getElementById('login').classList.add('hidden');
-        document.getElementById('app').classList.remove('hidden');
-        initWarehouse();
-      })
-      .catch(error => alert(error.message));
-  }
+function login() {
+  console.log("Login button clicked"); // ADD THIS
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => {
+      document.getElementById('login').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      initWarehouse();
+    })
+    .catch(error => {
+      alert(error.message);
+      console.error(error); // ADD THIS
+    });
+}
+
 
   function logout() {
     auth.signOut().then(() => {
