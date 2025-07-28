@@ -616,36 +616,54 @@
     // --- Firebase Functions ---
     // Load shared warehouse data (live updates)
 // Load shared warehouse data (live updates)
+// Add this at the top with other variables
+let lastDataHash = '';
+let isDragging = false;
+
+// Optimized load function
   function loadWarehouseData() {
-    document.getElementById('loading-indicator').style.display = 'flex';
-    
     const ref = database.ref('warehouse/pallets');
     ref.on('value', (snapshot) => {
-      const data = snapshot.val();
-      document.getElementById('loading-indicator').style.display = 'none';
+      if (isDragging) return; // Don't update during drag operations
       
-      if (data) {
-        // Only update if data actually changed
-        const dataString = JSON.stringify(data);
-        if (dataString !== this.lastDataString) {
-          this.lastDataString = dataString;
-          
-          // Clear existing pallets
-          pallets.forEach(p => p.remove());
-          pallets = [];
-          palletsByLocation = {};
-          
-          // Recreate pallets from shared data
-          Object.values(data).forEach(palletData => {
+      const data = snapshot.val();
+      if (!data) return;
+      
+      const dataString = JSON.stringify(data);
+      const newHash = hashCode(dataString);
+      
+      if (newHash !== lastDataHash) {
+        lastDataHash = newHash;
+        
+        // Efficient pallet updates
+        const currentPallets = {};
+        pallets.forEach(p => currentPallets[p.id] = p);
+        
+        // Update existing pallets
+        Object.entries(data).forEach(([id, palletData]) => {
+          if (currentPallets[id]) {
+            currentPallets[id].quantity = palletData.quantity;
+            currentPallets[id].location = palletData.location;
+            currentPallets[id].updateText();
+          } else {
             createNewPallet(palletData.itemId, palletData.quantity, palletData.location);
-          });
-        }
+          }
+        });
+        
+        // Remove deleted pallets
+        pallets.filter(p => !data[p.id]).forEach(p => p.remove());
       }
-    }, (error) => {
-      console.error("Error loading data:", error);
-      document.getElementById('loading-indicator').style.display = 'none';
-      alert("Error loading warehouse data");
     });
+  }
+  
+  // Helper function for quick comparison
+  function hashCode(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return hash;
   }
     // Save changes to shared warehouse
      function saveWarehouseData() {
