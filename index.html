@@ -493,34 +493,31 @@
       const container = document.querySelector('.grid-stack');
       const containerRect = container.getBoundingClientRect();
       
-      // Convert mouse coordinates to container coordinates
-      const relX = x - containerRect.left;
-      const relY = y - containerRect.top;
+      // Convert to container coordinates considering scroll and zoom
+      const relX = (x - containerRect.left) / (containerRect.width / container.offsetWidth);
+      const relY = (y - containerRect.top) / (containerRect.height / container.offsetHeight);
       
-      // Get all location elements
-      const locElements = document.querySelectorAll('.label-cell');
       let closestElement = null;
       let closestDistance = Infinity;
     
-      locElements.forEach(el => {
+      document.querySelectorAll('.label-cell, .drop-zone').forEach(el => {
         const elRect = el.getBoundingClientRect();
-        const elX = elRect.left - containerRect.left;
-        const elY = elRect.top - containerRect.top;
+        const elX = (elRect.left - containerRect.left) / (containerRect.width / container.offsetWidth);
+        const elY = (elRect.top - containerRect.top) / (containerRect.height / container.offsetHeight);
+        const elWidth = elRect.width / (containerRect.width / container.offsetWidth);
+        const elHeight = elRect.height / (containerRect.height / container.offsetHeight);
         
-        // Check if coordinates are within this element
-        if (relX >= elX && relX <= elX + elRect.width &&
-            relY >= elY && relY <= elY + elRect.height) {
+        // Check if point is inside element
+        if (relX >= elX && relX <= elX + elWidth &&
+            relY >= elY && relY <= elY + elHeight) {
           closestElement = el;
-          return; // Found exact match, exit early
+          return;
         }
         
-        // Calculate distance to center for fallback
-        const centerX = elX + elRect.width/2;
-        const centerY = elY + elRect.height/2;
-        const distance = Math.sqrt(
-          Math.pow(relX - centerX, 2) + 
-          Math.pow(relY - centerY, 2)
-        );
+        // Or find nearest center
+        const centerX = elX + elWidth/2;
+        const centerY = elY + elHeight/2;
+        const distance = Math.hypot(relX - centerX, relY - centerY);
         
         if (distance < closestDistance) {
           closestDistance = distance;
