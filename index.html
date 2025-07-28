@@ -205,20 +205,20 @@
         { name: 'Shelf5', left: 1300, top: 350 },
         { name: 'Shelf6', left: 1380, top: 350 },
         { name: 'New_#', left: 980, top: 500, width: 160, height: 80, color: '#FFFFFF' },
-        { name: 'Temporary1', left: 980, top: 850, color: '#FFD700' },
-        { name: 'Temporary2', left: 980, top: 900, color: '#FFD700' },
-        { name: 'Temporary3', left: 980, top: 950, color: '#FFD700' },
-        { name: 'Temporary4', left: 980, top: 1000, color: '#FFD700' },
-        { name: 'Temporary5', left: 980, top: 1050, color: '#FFD700' },
-        { name: 'Temporary6', left: 980, top: 1100, color: '#FFD700' },
-        { name: 'Temporary7', left: 980, top: 1150, color: '#FFD700' },
-        { name: 'Temporary8', left: 1070, top: 850, color: '#FFD700' },
-        { name: 'Temporary9', left: 1070, top: 900, color: '#FFD700' },
-        { name: 'Temporary10', left: 1070, top: 950, color: '#FFD700' },
-        { name: 'Temporary11', left: 1070, top: 1000, color: '#FFD700' },
-        { name: 'Temporary12', left: 1070, top: 1050, color: '#FFD700' },
-        { name: 'Temporary13', left: 1070, top: 1100, color: '#FFD700' },
-        { name: 'Temporary14', left: 1070, top: 1150, color: '#FFD700' }
+        { name: 'Temporary1', left: 980, top: 850 },
+        { name: 'Temporary2', left: 980, top: 900 },
+        { name: 'Temporary3', left: 980, top: 950 },
+        { name: 'Temporary4', left: 980, top: 1000 },
+        { name: 'Temporary5', left: 980, top: 1050 },
+        { name: 'Temporary6', left: 980, top: 1100 },
+        { name: 'Temporary7', left: 980, top: 1150 },
+        { name: 'Temporary8', left: 1070, top: 850 },
+        { name: 'Temporary9', left: 1070, top: 900 },
+        { name: 'Temporary10', left: 1070, top: 950 },
+        { name: 'Temporary11', left: 1070, top: 1000 },
+        { name: 'Temporary12', left: 1070, top: 1050 },
+        { name: 'Temporary13', left: 1070, top: 1100 },
+        { name: 'Temporary14', left: 1070, top: 1150 }
       ],
       dropZones: [
         { id: "SHIPPED", name: "SHIPPED", left: 1300, top: 1100, width: 160, height: 80, color: '#e74c3c' },
@@ -273,7 +273,6 @@
         div.style.top = `${item.top}px`;
         div.style.width = `${CELL_WIDTH}px`;
         div.style.height = `${CELL_HEIGHT}px`;
-        div.style.backgroundColor = item.color || '#FFFFFF';
         div.innerText = item.name;
         div.dataset.location = item.name;
         container.appendChild(div);
