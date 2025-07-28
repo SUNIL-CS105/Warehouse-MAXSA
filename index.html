@@ -359,43 +359,42 @@
         this.el.appendChild(this.splitArrow);
       }
 
-      // In your Pallet class's addEventListeners()
+      addEventListeners() {
       this.el.addEventListener('dragstart', e => {
         e.dataTransfer.setData('text/plain', this.id);
         this.el.style.zIndex = '1000';
-        this.el.style.pointerEvents = 'none'; // Prevent interference during drag
+        this.el.style.pointerEvents = 'none';
       });
-      
+    
       this.el.addEventListener('dragend', e => {
         this.el.style.zIndex = '';
         this.el.style.pointerEvents = '';
-        
-        // Get exact drop position relative to container
+    
         const container = document.querySelector('.grid-stack');
         const containerRect = container.getBoundingClientRect();
         const dropX = e.clientX - containerRect.left;
         const dropY = e.clientY - containerRect.top;
-        
+    
         const nearestLocation = findLocationUnder(e.clientX, e.clientY);
         if (nearestLocation) {
           this.moveToLocation(nearestLocation);
         }
         adjustPalletSizesAtLocation(this.location);
       });
-
-        this.splitArrow.addEventListener('click', e => {
-          e.stopPropagation();
-          const splitQ = prompt(`Enter quantity to split from "${this.itemId}" (max ${this.quantity -1}):`, Math.floor(this.quantity/2));
-          const num = parseInt(splitQ);
-          if (!isNaN(num) && num > 0 && num < this.quantity) {
-            this.quantity -= num;
-            this.updateText();
-            const newPallet = createNewPallet(this.itemId, num, this.location);
-            pallets.push(newPallet);
-            adjustPalletSizesAtLocation(this.location);
-          }
-        });
-      }
+    
+      this.splitArrow.addEventListener('click', e => {
+        e.stopPropagation();
+        const splitQ = prompt(`Enter quantity to split from "${this.itemId}" (max ${this.quantity - 1}):`, Math.floor(this.quantity / 2));
+        const num = parseInt(splitQ);
+        if (!isNaN(num) && num > 0 && num < this.quantity) {
+          this.quantity -= num;
+          this.updateText();
+          const newPallet = createNewPallet(this.itemId, num, this.location);
+          pallets.push(newPallet);
+          adjustPalletSizesAtLocation(this.location);
+        }
+      });
+    }
 
       moveToLocation(newLoc) {
         if(newLoc === this.location) return;
