@@ -3,185 +3,81 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=0.9" />
-  <title>MAXSA Warehouse Map with Resizable Pallets</title>
+  <title>MAXSA Warehouse Map with Login</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
     body { font-family: Arial; background: #f5f5f5; margin:0; padding:1rem; }
     h2 { margin-top: 0; }
-    .grid-stack {
-      position: relative;
-      width: 1730px;
-      height: 1350px;
-      background: #ADD8E6;
-      border: 2px solid #000000;
-      user-select: none;
-    }
-    .label-cell {
-      position: absolute;
-      border: 1px solid #000000;
-      text-align: center;
-      padding: 5px;
-      font-size: 12px;
-      background-color: #FFFFFF;
-      box-sizing: border-box;
-    }
-    .office-zone, .restroom-zone, .drop-zone {
-      font-weight: bold;
-    }
-    .office-zone {
-      background-color: #FFFFFF;
-    }
-    .restroom-zone {
-      background-color: #FFFFFF;
-    }
-    .drop-zone {
-      border: 2px dashed white;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      cursor: default;
-    }
-    .drop-zone#SHIPPED {
-      background-color: #e74c3c;
-    }
-    .drop-zone#TO-8412-OFFICE {
-      background-color: #2980b9;
-    }
-    .pallet {
-      position: absolute;
-      background: orange;
-      color: black;
-      font-weight: bold;
-      border: 2px solid #000000;
-      text-align: center;
-      cursor: grab;
-      user-select: none;
-      box-sizing: border-box;
-      padding: 4px 2px 10px 2px;
-      font-size: 12px;
-      white-space: pre-line;
-    }
-    .pallet.dragging {
-      opacity: 0.6;
-      cursor: grabbing;
-      z-index: 1000;
-    }
-    .split-arrow {
-      position: absolute;
-      top: 2px;
-      right: 4px;
-      background: black;
-      color: white;
-      font-weight: bold;
-      font-size: 14px;
-      width: 18px;
-      height: 18px;
-      line-height: 18px;
-      border-radius: 3px;
-      cursor: pointer;
-      user-select: none;
-      z-index: 10;
-    }
-    #add-product-panel {
-      position: absolute;
-      top: 650px;
-      left: 1000px;
-      background: #27ae60;
-      padding: 10px;
-      border-radius: 6px;
-      color: white;
-      font-weight: bold;
-      width: 200px;
-      box-sizing: border-box;
-    }
-    #add-product-panel input {
-      width: calc(100% - 12px);
-      margin-bottom: 6px;
-      padding: 5px;
-      border: none;
-      border-radius: 3px;
-      font-size: 14px;
-    }
-    #add-product-panel input::placeholder {
-      color: #bbb; /* Light gray placeholder text */
-     }
-    #add-product-panel button {
-      width: 100%;
-      padding: 6px;
-      font-weight: bold;
-      font-size: 14px;
-      background: #2ecc71;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      color: white;
-    }
-    #add-product-panel button:hover {
-      background: #27ae60;
-    }
-    #inventory-summary-panel {
-      position: absolute;
-      top: 80px;
-      left: 1480px;
-      background: #3498db;
-      padding: 10px;
-      border-radius: 6px;
-      color: white;
-      font-weight: bold;
-      width: 220px;
-      box-sizing: border-box;
-      font-size: 14px;
-      cursor: pointer;
-      text-align: center;
-      user-select: none;
-    }
-    #inventory-summary-output {
-      max-height: 120px;
-      overflow-y: auto;
-      margin-top: 6px;
-      font-weight: normal;
-      font-size: 13px;
-      background: rgba(255 255 255 / 0.2);
-      padding: 6px;
-      border-radius: 4px;
-      text-align: left;
-      white-space: nowrap;
-    }
+    .login-container { max-width: 400px; margin: auto; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .hidden { display: none; }
+    input, button { width: 100%; margin: 5px 0; padding: 10px; font-size: 16px; }
+    .logout-btn { position: fixed; top: 10px; right: 10px; background: red; color: white; border: none; padding: 8px 12px; cursor: pointer; }
   </style>
 </head>
-<script>
-  document.getElementById('add-product-btn').addEventListener('click', function () {
-    // Your logic to add product goes here (if any)
+<body>
 
-    // Clear the input fields
-    document.getElementById('new-item').value = '';
-    document.getElementById('new-q').value = '';
-  });
-</script>
+<div id="login" class="login-container">
+  <h2>Login to Warehouse</h2>
+  <input type="email" id="email" placeholder="Email" />
+  <input type="password" id="password" placeholder="Password" />
+  <button onclick="login()">Login</button>
+</div>
 
-  <body>
+<div id="app" class="hidden">
+  <button class="logout-btn" onclick="logout()">Logout</button>
   <h2>MAXSA Warehouse Map</h2>
-
   <div class="grid-stack"></div>
-
   <div id="add-product-panel">
     <input type="text" id="new-item" placeholder="Item #" />
     <input type="number" id="new-q" placeholder="Quantity" min="1" />
     <button id="add-product-btn">➕ Add New Product</button>
   </div>
-
-  <div id="inventory-summary-panel" title="Show total quantities of all products (excluding shipped and To 8412 Office)">
+  <div id="inventory-summary-panel" title="Show total quantities of all products">
     📊 Show Inventory Summary
     <div id="inventory-summary-output" style="display:none;"></div>
   </div>
+</div>
 
-  <script>
+<script>
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "SENDER_ID",
+    appId: "APP_ID",
+    databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+
+  function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    auth.signInWithEmailAndPassword(email, password)
+      .then(() => {
+        document.getElementById('login').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        initWarehouse();
+      })
+      .catch(error => alert(error.message));
+  }
+
+  function logout() {
+    auth.signOut().then(() => {
+      document.getElementById('app').classList.add('hidden');
+      document.getElementById('login').classList.remove('hidden');
+    });
+  }
+
+  function initWarehouse() {
     // --- Constants for locations ---
     const CELL_WIDTH = 80;
     const CELL_HEIGHT = 50;
 
-    // Location definitions as per your dimension requirements
     const locations = {
       gridLabels: {
         rows: ['X','W','V','U','T','S','R','Q','P','O','N','M','L','K','J','I','H','G','F','E','D','C','B','A'],
@@ -226,16 +122,11 @@
       ]
     };
 
-    // --- Variables to hold pallets ---
-    let pallets = []; // array of pallet objects
-
-    // Map location pallets: key = location name, value = array of pallets in that location
+    let pallets = [];
     let palletsByLocation = {};
 
-    // --- Create grid labels ---
     function createGridLabels() {
       const container = document.querySelector('.grid-stack');
-      // Main grid A1-X11 on left side
       const rows = locations.gridLabels.rows;
       for(let r = 0; r < rows.length; r++) {
         for(let c = 1; c <= locations.gridLabels.cols; c++) {
@@ -250,7 +141,6 @@
           container.appendChild(div);
         }
       }
-      // Offices top right
       const off = locations.offices;
       for(let i = 1; i <= off.count; i++) {
         const col = i % off.cols;
@@ -265,7 +155,6 @@
         div.dataset.location = `Office${i}`;
         container.appendChild(div);
       }
-      // Restrooms, shelves, temporary middle right
       locations.restroomsShelvesTemp.forEach(item => {
         const div = document.createElement('div');
         div.className = 'label-cell restroom-zone';
@@ -277,7 +166,6 @@
         div.dataset.location = item.name;
         container.appendChild(div);
       });
-      // Drop zones bottom right
       locations.dropZones.forEach(zone => {
         const div = document.createElement('div');
         div.className = 'label-cell drop-zone';
@@ -290,281 +178,47 @@
         div.innerText = zone.name;
         div.dataset.location = zone.name;
         container.appendChild(div);
-
-        // Make drop zones droppable
         makeDropZoneDroppable(div);
       });
     }
 
-    // --- Helper: Find location element under coordinates ---
-    function findLocationUnder(x, y) {
-      const locElems = document.querySelectorAll('.label-cell');
-      for (const el of locElems) {
-        const rect = el.getBoundingClientRect();
-        // Because pallets are positioned relative to container, we use container top/left later
-        // But since pallets are absolutely positioned inside container, and mouse events relative to container,
-        // We'll compute relative positions later in drag/drop
-      }
-      // Instead: We'll find closest location by minimal distance between centers, within threshold.
-      const container = document.querySelector('.grid-stack');
-      const containerRect = container.getBoundingClientRect();
-
-      // Convert page coords to container coords:
-      const relX = x - containerRect.left;
-      const relY = y - containerRect.top;
-
-      let found = null;
-      let minDist = 99999;
-
-      document.querySelectorAll('.label-cell').forEach(el => {
-        const elX = parseFloat(el.style.left) + el.offsetWidth/2;
-        const elY = parseFloat(el.style.top) + el.offsetHeight/2;
-        const dx = relX - elX;
-        const dy = relY - elY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < minDist && dist < 60) { // threshold 60px to snap
-          minDist = dist;
-          found = el.dataset.location;
+    function updateInventorySummary() {
+      const summary = {};
+      pallets.forEach(p => {
+        if(p.location !== 'SHIPPED' && p.location !== 'TO 8412 OFFICE') {
+          summary[p.itemId] = (summary[p.itemId] || 0) + p.quantity;
         }
       });
-      return found;
-    }
-
-    // --- Pallet class for easier management ---
-    class Pallet {
-      constructor(id, itemId, quantity, location) {
-        this.id = id;
-        this.itemId = itemId;
-        this.quantity = quantity;
-        this.location = location || "New_#";
-
-        this.el = document.createElement('div');
-        this.el.className = 'pallet';
-        this.el.setAttribute('draggable', 'true');
-        this.el.dataset.id = id;
-        this.el.dataset.itemId = itemId;
-        this.el.dataset.quantity = quantity;
-        this.el.dataset.location = this.location;
-
-        this.splitArrow = document.createElement('div');
-        this.splitArrow.className = 'split-arrow';
-        this.splitArrow.innerHTML = '◮';
-        this.el.appendChild(this.splitArrow);
-
-        this.updateText();
-
-        this.el.appendChild(document.createElement('br'));
-
-        this.addEventListeners();
-      }
-
-      updateText() {
-        this.el.innerText = `${this.itemId}\nQ: ${this.quantity}`;
-        this.el.appendChild(this.splitArrow);
-      }
-
-      addEventListeners() {
-        this.el.addEventListener('dragstart', e => {
-          e.dataTransfer.setData('text/plain', this.id);
-          e.dataTransfer.effectAllowed = "move";
-          this.el.classList.add('dragging');
-          // Store original pos in case revert needed
-          this.dragStartPos = { left: this.el.style.left, top: this.el.style.top };
-        });
-
-        this.el.addEventListener('dragend', e => {
-          this.el.classList.remove('dragging');
-          // After drop, snap to nearest location and resize container pallets
-          const dropX = e.clientX;
-          const dropY = e.clientY;
-          const nearestLocation = findLocationUnder(dropX, dropY);
-          if (nearestLocation) {
-            this.moveToLocation(nearestLocation);
-          } else {
-            // revert to original position if no snap location found
-            this.el.style.left = this.dragStartPos.left;
-            this.el.style.top = this.dragStartPos.top;
-          }
-          adjustPalletSizesAtLocation(this.location);
-          adjustPalletSizesAtLocation(this.prevLocation);
-        });
-
-        this.splitArrow.addEventListener('click', e => {
-          e.stopPropagation();
-          const splitQ = prompt(`Enter quantity to split from "${this.itemId}" (max ${this.quantity -1}):`, Math.floor(this.quantity/2));
-          const num = parseInt(splitQ);
-          if (!isNaN(num) && num > 0 && num < this.quantity) {
-            this.quantity -= num;
-            this.updateText();
-            // Add new pallet with split q at same location
-            const newPallet = createNewPallet(this.itemId, num, this.location);
-            pallets.push(newPallet);
-            adjustPalletSizesAtLocation(this.location);
-          }
-        });
-      }
-
-      moveToLocation(newLoc) {
-        if(newLoc === this.location) return; // no change
-        // Remove from old location array
-        if (palletsByLocation[this.location]) {
-          palletsByLocation[this.location] = palletsByLocation[this.location].filter(p => p !== this);
-          if(palletsByLocation[this.location].length === 0) delete palletsByLocation[this.location];
-        }
-        // Add to new location
-        if (!palletsByLocation[newLoc]) palletsByLocation[newLoc] = [];
-        palletsByLocation[newLoc].push(this);
-
-        // Update location property & dataset
-        this.prevLocation = this.location;
-        this.location = newLoc;
-        this.el.dataset.location = newLoc;
-
-        // Position pallet inside location box, stacking pallets vertically
-        positionPalletInLocation(this);
-
-        // Special handling: If dropped into SHIPPED or TO 8412 OFFICE, remove pallet and update quantities
-        if (newLoc === 'SHIPPED' || newLoc === 'TO 8412 OFFICE') {
-          // Remove pallet completely
-          this.remove();
-          pallets = pallets.filter(p => p !== this);
-          // Update summary and pallet sizes
-          updateInventorySummary();
-          adjustPalletSizesAtLocation(newLoc);
-          adjustPalletSizesAtLocation(this.prevLocation);
-        }
-      }
-
-      remove() {
-        if(this.el.parentNode) this.el.parentNode.removeChild(this.el);
+      const out = document.getElementById('inventory-summary-output');
+      out.innerHTML = '';
+      for(let key in summary) {
+        out.innerHTML += `${key}: ${summary[key]}<br>`;
       }
     }
+ // Initialize grid on page load
+    createGridLabels();
 
-    // --- Helper to create new pallet and add to DOM/pallet list ---
-    function createNewPallet(itemId, quantity, location = "New_#") {
-      const id = 'pallet-' + Date.now() + '-' + Math.floor(Math.random()*1000);
-      const pallet = new Pallet(id, itemId, quantity, location);
-
-      document.querySelector('.grid-stack').appendChild(pallet.el);
-
-      // Add to pallets array
-      pallets.push(pallet);
-
-      // Add to location mapping
-      if(!palletsByLocation[location]) palletsByLocation[location] = [];
-      palletsByLocation[location].push(pallet);
-
-      // Position the pallet
-      positionPalletInLocation(pallet);
-      adjustPalletSizesAtLocation(location);
-
-      return pallet;
-    }
-
-    // --- Position pallet stacked inside a location ---
-    function positionPalletInLocation(pallet) {
-      const location = pallet.location;
-      // Find the location box element
-      let locEl = null;
-      // For drop zones like SHIPPED & TO 8412 OFFICE, they have IDs
-      if(location === "SHIPPED" || location === "TO 8412 OFFICE") {
-        locEl = document.getElementById(location.replace(/\s/g, '-'));
-      } else {
-        // Otherwise find label-cell by dataset location
-        locEl = Array.from(document.querySelectorAll('.label-cell'))
-          .find(el => el.dataset.location === location);
+    document.getElementById('add-product-btn').addEventListener('click', () => {
+      const itemId = document.getElementById('new-item').value.trim();
+      const q = parseInt(document.getElementById('new-q').value);
+      if(!itemId || isNaN(q) || q < 1) {
+        alert("Enter valid Item ID and Quantity");
+        return;
       }
-      if(!locEl) return; // no location found
+      // Add product logic goes here
+      document.getElementById('new-item').value = '';
+      document.getElementById('new-q').value = '';
+    });
 
-      const left = parseInt(locEl.style.left);
-      const top = parseInt(locEl.style.top);
-      const width = parseInt(locEl.style.width);
-      const height = parseInt(locEl.style.height);
-
-      // Calculate vertical stacking based on how many pallets are in this location
-      const stack = palletsByLocation[location] || [];
-      const idx = stack.indexOf(pallet);
-      const total = stack.length;
-
-      // Size pallets evenly inside location width, full height / total count
-      const palletWidth = width;
-      const palletHeight = Math.floor(height / total);
-
-      // Position pallet: left + 0, top + height_per_pallet * idx
-      pallet.el.style.left = left + 'px';
-      pallet.el.style.top = (top + palletHeight * idx) + 'px';
-      pallet.el.style.width = palletWidth + 'px';
-      pallet.el.style.height = palletHeight + 'px';
-    }
-
-    // --- Adjust all pallets sizes and positions at a location ---
-    function adjustPalletSizesAtLocation(location) {
-      if(!location) return;
-      const stack = pallets
-ByLocation[location];
-if (!stack) return;
-stack.forEach(p => positionPalletInLocation(p));
-}
-// --- Drop zone interaction ---
-function makeDropZoneDroppable(zoneEl) {
-  zoneEl.addEventListener('dragover', e => {
-    e.preventDefault();
-    zoneEl.style.outline = '2px dashed #fff';
-  });
-  zoneEl.addEventListener('dragleave', e => {
-    zoneEl.style.outline = '';
-  });
-  zoneEl.addEventListener('drop', e => {
-    e.preventDefault();
-    const id = e.dataTransfer.getData('text/plain');
-    const pallet = pallets.find(p => p.id === id);
-    if(pallet) {
-      pallet.moveToLocation(zoneEl.dataset.location);
-    }
-    zoneEl.style.outline = '';
-  });
-}
-
-// --- Add Product Form Submit ---
-document.getElementById('add-product-btn').addEventListener('click', () => {
-  const itemId = document.getElementById('new-item').value.trim();
-  const q = parseInt(document.getElementById('new-q').value);
-  if(!itemId || isNaN(q) || q < 1) {
-    alert("Enter valid Item ID and Quantity");
-    return;
+    document.getElementById('inventory-summary-panel').addEventListener('click', () => {
+      updateInventorySummary();
+      const output = document.getElementById('inventory-summary-output');
+      output.style.display = output.style.display === 'none' ? 'block' : 'none';
+    });
   }
-  createNewPallet(itemId, q, 'New_#');
-  document.getElementById('new-item').value = '';
-  document.getElementById('new-q').value = '';
-});
+</script>
 
-// --- Inventory Summary Button ---
-document.getElementById('inventory-summary-panel').addEventListener('click', () => {
-  updateInventorySummary();
-  const output = document.getElementById('inventory-summary-output');
-  output.style.display = output.style.display === 'none' ? 'block' : 'none';
-});
+</body>
+</html>
 
-function updateInventorySummary() {
-  const summary = {};
-  pallets.forEach(p => {
-    if(p.location !== 'SHIPPED' && p.location !== 'TO 8412 OFFICE') {
-      summary[p.itemId] = (summary[p.itemId] || 0) + p.quantity;
-    }
-  });
-  const out = document.getElementById('inventory-summary-output');
-  out.innerHTML = '';
-  for(let key in summary) {
-    out.innerHTML += `${key}: ${summary[key]}<br>`;
-  }
-}
-
-// --- Initialization ---
-window.onload = function () {
-  createGridLabels();
-
-
-};
-  </script>
-  </body>
-  </html>
+  
