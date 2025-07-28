@@ -375,10 +375,9 @@
         this.el.addEventListener('dragend', e => {
           this.el.classList.remove('dragging');
           // After drop, snap to nearest location and resize container pallets
-          const dropX = e.pageX;
-          const dropY = e.pageY;
+          const dropX = e.clientX;
+          const dropY = e.clientY;
           const nearestLocation = findLocationUnder(dropX, dropY);
-
           if (nearestLocation) {
             this.moveToLocation(nearestLocation);
           } else {
