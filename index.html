@@ -30,6 +30,7 @@
       background-color: #FFFFFF;
       box-sizing: border-box;
       pointer-events: auto;
+      z-index: 2;
     }
     .office-zone, .restroom-zone, .drop-zone {
       font-weight: bold;
@@ -433,6 +434,7 @@
           adjustPalletSizesAtLocation(newLoc);
           adjustPalletSizesAtLocation(this.prevLocation);
         }
+       saveWarehouseData(); 
       }
 
       remove() {
@@ -510,7 +512,7 @@
       let closestElement = null;
       let closestDistance = Infinity;
 
-      document.querySelectorAll('.label-cell, .drop-zone').forEach(el => {
+      container.querySelectorAll('.label-cell, .drop-zone').forEach(el => {
         const elRect = el.getBoundingClientRect();
         const elX = (elRect.left - containerRect.left) / (containerRect.width / container.offsetWidth);
         const elY = (elRect.top - containerRect.top) / (containerRect.height / container.offsetHeight);
@@ -548,7 +550,7 @@
 
       positionPalletInLocation(pallet);
       adjustPalletSizesAtLocation(location);
-
+       saveWarehouseData(); // <-- Add this
       return pallet;
     }
 
@@ -743,6 +745,8 @@ function loadWarehouseData() {
         }
         
         createNewPallet(itemId, quantity, 'New_#');
+        saveWarehouseData();  // <-- Save immediately
+
         document.getElementById('new-item').value = '';
         document.getElementById('new-q').value = '';
       });
@@ -792,7 +796,7 @@ function loadWarehouseData() {
     if (auth.currentUser) {
       saveWarehouseData();
     }
-  }, 200);
+  }, 2000);
 }
 
 
