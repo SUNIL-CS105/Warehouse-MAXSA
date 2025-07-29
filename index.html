@@ -286,7 +286,7 @@
     const auth = firebase.auth();
 
     // Connection monitoring
-    database.ref('.info/connected').once('value', (snapshot) => {
+    database.ref('.info/connected').on('value', (snapshot) => {
       if (snapshot.val() === true) {
         console.log("Firebase connection active");
       }
@@ -623,39 +623,64 @@
     }
 
     // --- Firebase Functions ---
-    function loadWarehouseData() {
-      document.getElementById('loading-indicator').style.display = 'flex';
-      
-      const ref = database.ref('warehouse/pallets');
-      ref.on('value', (snapshot) => {
-        document.getElementById('loading-indicator').style.display = 'none';
-        
+ function loadWarehouseData() {
+  const loadingEl = document.getElementById('loading-indicator');
+  loadingEl.style.display = 'flex';
+
+  const ref = database.ref('warehouse/pallets');
+
+  // First load (one-time)
+  ref.once('value')
+    .then((snapshot) => {
+      loadingEl.style.display = 'none';
+
+      const data = snapshot.val();
+      if (!data) return;
+
+      const dataString = JSON.stringify(data);
+      const newHash = hashCode(dataString);
+
+      if (newHash !== lastDataHash) {
+        lastDataHash = newHash;
+
+        pallets.forEach(p => p.remove());
+        pallets = [];
+        palletsByLocation = {};
+
+        Object.entries(data).forEach(([id, palletData]) => {
+          createNewPallet(palletData.itemId, palletData.quantity, palletData.location);
+        });
+      }
+
+      // Start real-time listener only after successful load
+      ref.on('value', (snap) => {
         if (isDragging) return;
-        const data = snapshot.val();
-        if (!data) return;
-        
-        const dataString = JSON.stringify(data);
-        const newHash = hashCode(dataString);
-        
-        if (newHash !== lastDataHash) {
-          lastDataHash = newHash;
-          
-          // Clear existing pallets
+
+        const liveData = snap.val();
+        if (!liveData) return;
+
+        const liveString = JSON.stringify(liveData);
+        const liveHash = hashCode(liveString);
+
+        if (liveHash !== lastDataHash) {
+          lastDataHash = liveHash;
+
           pallets.forEach(p => p.remove());
           pallets = [];
           palletsByLocation = {};
-          
-          // Create new pallets from data
-          Object.entries(data).forEach(([id, palletData]) => {
+
+          Object.entries(liveData).forEach(([id, palletData]) => {
             createNewPallet(palletData.itemId, palletData.quantity, palletData.location);
           });
         }
-      }, (error) => {
-        console.error("Error loading data:", error);
-        document.getElementById('loading-indicator').style.display = 'none';
-        alert("Error loading warehouse data");
       });
-    }
+    })
+    .catch((error) => {
+      loadingEl.style.display = 'none';
+      console.error("Error loading data:", error);
+      alert("Error loading warehouse data.");
+    });
+}
 
     function hashCode(str) {
       let hash = 0;
