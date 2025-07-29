@@ -623,7 +623,8 @@
     }
 
     // --- Firebase Functions ---
- function loadWarehouseData() {
+function loadWarehouseData() {
+  console.log("🔥 loadWarehouseData() started");
   const loadingEl = document.getElementById('loading-indicator');
   loadingEl.style.display = 'flex';
 
@@ -635,7 +636,13 @@
       loadingEl.style.display = 'none';
 
       const data = snapshot.val();
-      if (!data) return;
+      if (!data) {
+      console.warn("⚠️ No pallet data found.");
+      // Continue to show the app even if no pallets exist
+      return;
+                  }
+
+
 
       const dataString = JSON.stringify(data);
       const newHash = hashCode(dataString);
@@ -766,17 +773,28 @@
       });
     }
 
-    function initWarehouseApp() {
-      createGridLabels();
-      setupEventListeners();
-      
-      // Auto-save every 30 seconds
-      setInterval(() => {
-        if (auth.currentUser) {
-          saveWarehouseData();
-        }
-      }, 30000);
+  function initWarehouseApp() {
+  console.log("🏗️ Initializing warehouse app...");
+
+  const grid = document.querySelector('.grid-stack');
+  if (!grid) {
+    console.error("❌ .grid-stack element not found in DOM!");
+    return;
+  } else {
+    console.log("✅ .grid-stack element found, proceeding to create map...");
+  }
+
+  createGridLabels();
+  setupEventListeners();
+
+  // Auto-save every 30 seconds
+  setInterval(() => {
+    if (auth.currentUser) {
+      saveWarehouseData();
     }
+  }, 30000);
+}
+
 
     // --- Initialize App ---
     document.addEventListener('DOMContentLoaded', function() {
