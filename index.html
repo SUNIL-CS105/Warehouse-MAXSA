@@ -18,8 +18,6 @@
       background: #ADD8E6;
       border: 2px solid #000000;
       user-select: none;
-      contain: strict;
-      transform-origin: 0 0;
     }
     .label-cell {
       position: absolute;
@@ -29,8 +27,6 @@
       font-size: 12px;
       background-color: #FFFFFF;
       box-sizing: border-box;
-      pointer-events: auto;
-      z-index: 2;
     }
     .office-zone, .restroom-zone, .drop-zone {
       font-weight: bold;
@@ -49,7 +45,6 @@
       justify-content: center;
       font-size: 14px;
       cursor: default;
-      pointer-events: auto;
     }
     .drop-zone#SHIPPED {
       background-color: #e74c3c;
@@ -70,16 +65,11 @@
       padding: 4px 2px 10px 2px;
       font-size: 12px;
       white-space: pre-line;
-      will-change: transform;
-      backface-visibility: hidden;
-      transform: translateZ(0);
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
     }
-    .pallet.dragging-active {
-      transform: scale(1.05);
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
-      z-index: 1000;
+    .pallet.dragging {
+      opacity: 0.6;
       cursor: grabbing;
+      z-index: 1000;
     }
     .split-arrow {
       position: absolute;
@@ -162,6 +152,7 @@
       text-align: left;
       white-space: nowrap;
     }
+    /* Login styles */
     #login-container {
       position: fixed;
       top: 0;
@@ -225,13 +216,6 @@
       z-index: 1002;
       display: none;
     }
-    #login-error {
-      color: #e74c3c;
-      font-size: 14px;
-      margin-top: 10px;
-      text-align: center;
-      display: none;
-    }
   </style>
 </head>
 <body>
@@ -242,7 +226,6 @@
       <input type="email" id="email" placeholder="Email">
       <input type="password" id="password" placeholder="Password">
       <button id="login-btn">Login</button>
-      <div id="login-error"></div>
     </div>
   </div>
 
@@ -272,34 +255,23 @@
   <script>
     // --- Firebase Configuration ---
     const firebaseConfig = {
-      apiKey: "AIzaSyDgTBFlnjtcbdvuf2l7YUnoHXK9-L4I5MI",
-      authDomain: "warehouse-maxsa.firebaseapp.com",
-      databaseURL: "https://warehouse-maxsa-default-rtdb.firebaseio.com",
-      projectId: "warehouse-maxsa",
-      storageBucket: "warehouse-maxsa.appspot.com",
-      messagingSenderId: "978214247804",
-      appId: "1:978214247804:web:aa785914ee177d74ba98f9"
+    apiKey: "AIzaSyDgTBFlnjtcbdvuf2l7YUnoHXK9-L4I5MI",
+    authDomain: "warehouse-maxsa.firebaseapp.com",
+    databaseURL: "https://warehouse-maxsa-default-rtdb.firebaseio.com",
+    projectId: "warehouse-maxsa",
+    storageBucket: "warehouse-maxsa.firebasestorage.app",
+    messagingSenderId: "978214247804",
+    appId: "1:978214247804:web:aa785914ee177d74ba98f9"
     };
-    
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-    const auth = firebase.auth();
-
-    // Connection monitoring
-    database.ref('.info/connected').on('value', (snapshot) => {
-      if (snapshot.val() === true) {
-        console.log("Firebase connection active");
-      }
-    });
 
     // --- Warehouse App Variables ---
     const CELL_WIDTH = 80;
     const CELL_HEIGHT = 50;
-    let pallets = [];
-    let palletsByLocation = {};
-    let lastDataHash = '';
-    let isDragging = false;
+    let pallets = []; // array of pallet objects
+    let palletsByLocation = {}; // key = location name, value = array of pallets
 
     // Location definitions
     const locations = {
@@ -378,27 +350,31 @@
 
       addEventListeners() {
         this.el.addEventListener('dragstart', e => {
-          isDragging = true;
           e.dataTransfer.setData('text/plain', this.id);
-          this.el.classList.add('dragging-active');
+          e.dataTransfer.effectAllowed = "move";
+          this.el.classList.add('dragging');
+          this.dragStartPos = { left: this.el.style.left, top: this.el.style.top };
         });
 
         this.el.addEventListener('dragend', e => {
-          isDragging = false;
-          this.el.classList.remove('dragging-active');
-          
-          setTimeout(() => {
-            const nearestLocation = findLocationUnder(e.clientX, e.clientY);
-            if (nearestLocation && nearestLocation !== this.location) {
-              this.moveToLocation(nearestLocation);
-            }
-            adjustPalletSizesAtLocation(this.location);
-          }, 10);
+          this.el.classList.remove('dragging');
+          const dropX = e.pageX;
+          const dropY = e.pageY;
+          const nearestLocation = findLocationUnder(dropX, dropY);
+
+          if (nearestLocation) {
+            this.moveToLocation(nearestLocation);
+          } else {
+            this.el.style.left = this.dragStartPos.left;
+            this.el.style.top = this.dragStartPos.top;
+          }
+          adjustPalletSizesAtLocation(this.location);
+          adjustPalletSizesAtLocation(this.prevLocation);
         });
 
         this.splitArrow.addEventListener('click', e => {
           e.stopPropagation();
-          const splitQ = prompt(`Enter quantity to split from "${this.itemId}" (max ${this.quantity - 1}):`, Math.floor(this.quantity / 2));
+          const splitQ = prompt(`Enter quantity to split from "${this.itemId}" (max ${this.quantity -1}):`, Math.floor(this.quantity/2));
           const num = parseInt(splitQ);
           if (!isNaN(num) && num > 0 && num < this.quantity) {
             this.quantity -= num;
@@ -427,14 +403,13 @@
 
         positionPalletInLocation(this);
 
-        if (newLoc === 'SHIPPED' || newLoc === 'TO-8412-OFFICE') {
+        if (newLoc === 'SHIPPED' || newLoc === 'TO 8412 OFFICE') {
           this.remove();
           pallets = pallets.filter(p => p !== this);
           updateInventorySummary();
           adjustPalletSizesAtLocation(newLoc);
           adjustPalletSizesAtLocation(this.prevLocation);
         }
-       saveWarehouseData(); 
       }
 
       remove() {
@@ -445,6 +420,7 @@
     // --- Core Warehouse Functions ---
     function createGridLabels() {
       const container = document.querySelector('.grid-stack');
+      // Main grid A1-X11 on left side
       const rows = locations.gridLabels.rows;
       for(let r = 0; r < rows.length; r++) {
         for(let c = 1; c <= locations.gridLabels.cols; c++) {
@@ -459,7 +435,7 @@
           container.appendChild(div);
         }
       }
-
+      // Offices top right
       const off = locations.offices;
       for(let i = 1; i <= off.count; i++) {
         const col = i % off.cols;
@@ -474,7 +450,7 @@
         div.dataset.location = `Office${i}`;
         container.appendChild(div);
       }
-
+      // Restrooms, shelves, temporary middle right
       locations.restroomsShelvesTemp.forEach(item => {
         const div = document.createElement('div');
         div.className = 'label-cell restroom-zone';
@@ -486,7 +462,7 @@
         div.dataset.location = item.name;
         container.appendChild(div);
       });
-
+      // Drop zones bottom right
       locations.dropZones.forEach(zone => {
         const div = document.createElement('div');
         div.className = 'label-cell drop-zone';
@@ -506,36 +482,24 @@
     function findLocationUnder(x, y) {
       const container = document.querySelector('.grid-stack');
       const containerRect = container.getBoundingClientRect();
-      const relX = (x - containerRect.left) / (containerRect.width / container.offsetWidth);
-      const relY = (y - containerRect.top) / (containerRect.height / container.offsetHeight);
-      
-      let closestElement = null;
-      let closestDistance = Infinity;
+      const relX = x - containerRect.left;
+      const relY = y - containerRect.top;
 
-      container.querySelectorAll('.label-cell, .drop-zone').forEach(el => {
-        const elRect = el.getBoundingClientRect();
-        const elX = (elRect.left - containerRect.left) / (containerRect.width / container.offsetWidth);
-        const elY = (elRect.top - containerRect.top) / (containerRect.height / container.offsetHeight);
-        const elWidth = elRect.width / (containerRect.width / container.offsetWidth);
-        const elHeight = elRect.height / (containerRect.height / container.offsetHeight);
-        
-        if (relX >= elX && relX <= elX + elWidth &&
-            relY >= elY && relY <= elY + elHeight) {
-          closestElement = el;
-          return;
-        }
-        
-        const centerX = elX + elWidth/2;
-        const centerY = elY + elHeight/2;
-        const distance = Math.hypot(relX - centerX, relY - centerY);
-        
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestElement = el;
+      let found = null;
+      let minDist = 99999;
+
+      document.querySelectorAll('.label-cell').forEach(el => {
+        const elX = parseFloat(el.style.left) + el.offsetWidth/2;
+        const elY = parseFloat(el.style.top) + el.offsetHeight/2;
+        const dx = relX - elX;
+        const dy = relY - elY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < minDist && dist < 60) {
+          minDist = dist;
+          found = el.dataset.location;
         }
       });
-
-      return closestElement ? closestElement.dataset.location : null;
+      return found;
     }
 
     function createNewPallet(itemId, quantity, location = "New_#") {
@@ -550,7 +514,7 @@
 
       positionPalletInLocation(pallet);
       adjustPalletSizesAtLocation(location);
-       saveWarehouseData(); // <-- Add this
+
       return pallet;
     }
 
@@ -558,8 +522,8 @@
       const location = pallet.location;
       let locEl = null;
       
-      if(location === "SHIPPED" || location === "TO-8412-OFFICE") {
-        locEl = document.getElementById(location);
+      if(location === "SHIPPED" || location === "TO 8412 OFFICE") {
+        locEl = document.getElementById(location.replace(/\s/g, '-'));
       } else {
         locEl = Array.from(document.querySelectorAll('.label-cell'))
           .find(el => el.dataset.location === location);
@@ -613,7 +577,7 @@
     function updateInventorySummary() {
       const summary = {};
       pallets.forEach(p => {
-        if(p.location !== 'SHIPPED' && p.location !== 'TO-8412-OFFICE') {
+        if(p.location !== 'SHIPPED' && p.location !== 'TO 8412 OFFICE') {
           summary[p.itemId] = (summary[p.itemId] || 0) + p.quantity;
         }
       });
@@ -625,84 +589,27 @@
     }
 
     // --- Firebase Functions ---
-function loadWarehouseData() {
-  console.log("🔥 loadWarehouseData() started");
-  const loadingEl = document.getElementById('loading-indicator');
-  loadingEl.style.display = 'flex';
-
-  const ref = database.ref('warehouse/pallets');
-
-  // First load (one-time)
-  ref.once('value')
-    .then((snapshot) => {
-      loadingEl.style.display = 'none';
-
-      const data = snapshot.val();
-      if (!data) {
-      console.warn("⚠️ No pallet data found.");
-      // Continue to show the app even if no pallets exist
-      return;
-                  }
-
-
-
-      const dataString = JSON.stringify(data);
-      const newHash = hashCode(dataString);
-
-      if (newHash !== lastDataHash) {
-        lastDataHash = newHash;
-
-        pallets.forEach(p => p.remove());
-        pallets = [];
-        palletsByLocation = {};
-
-        Object.entries(data).forEach(([id, palletData]) => {
-          createNewPallet(palletData.itemId, palletData.quantity, palletData.location);
-        });
-      }
-
-      // Start real-time listener only after successful load
-      ref.on('value', (snap) => {
-        if (isDragging) return;
-
-        const liveData = snap.val();
-        if (!liveData) return;
-
-        const liveString = JSON.stringify(liveData);
-        const liveHash = hashCode(liveString);
-
-        if (liveHash !== lastDataHash) {
-          lastDataHash = liveHash;
-
+    // Load shared warehouse data (live updates)
+    function loadWarehouseData() {
+      const ref = database.ref('warehouse/pallets');
+      ref.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          // Clear existing pallets
           pallets.forEach(p => p.remove());
           pallets = [];
           palletsByLocation = {};
-
-          Object.entries(liveData).forEach(([id, palletData]) => {
+          
+          // Recreate pallets from shared data
+          Object.values(data).forEach(palletData => {
             createNewPallet(palletData.itemId, palletData.quantity, palletData.location);
           });
         }
       });
-    })
-    .catch((error) => {
-      loadingEl.style.display = 'none';
-      console.error("Error loading data:", error);
-      alert("Error loading warehouse data.");
-    });
-}
-
-    function hashCode(str) {
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        hash = (hash << 5) - hash + str.charCodeAt(i);
-        hash |= 0;
-      }
-      return hash;
     }
-
+    
+    // Save changes to shared warehouse
     function saveWarehouseData() {
-      if (isDragging) return;
-      
       const data = {};
       pallets.forEach(p => {
         data[p.id] = {
@@ -712,41 +619,20 @@ function loadWarehouseData() {
         };
       });
       
-      const dataString = JSON.stringify(data);
-      const newHash = hashCode(dataString);
-      
-      if (newHash !== lastDataHash) {
-        lastDataHash = newHash;
-        database.ref('warehouse/pallets').set(data)
-          .catch(err => console.error("Save error:", err));
-      }
+      database.ref('warehouse/pallets').set(data);
     }
+
 
     // --- Event Listeners ---
     function setupEventListeners() {
       document.getElementById('add-product-btn').addEventListener('click', () => {
         const itemId = document.getElementById('new-item').value.trim();
-        const qStr = document.getElementById('new-q').value.trim();
-        
-        if (!itemId) {
-          alert("Please enter an Item #");
+        const q = parseInt(document.getElementById('new-q').value);
+        if(!itemId || isNaN(q) || q < 1) {
+          alert("Enter valid Item ID and Quantity");
           return;
         }
-        
-        const quantity = parseInt(qStr);
-        if (isNaN(quantity)) {
-          alert("Please enter a valid quantity");
-          return;
-        }
-        
-        if (quantity < 1) {
-          alert("Quantity must be at least 1");
-          return;
-        }
-        
-        createNewPallet(itemId, quantity, 'New_#');
-        saveWarehouseData();  // <-- Save immediately
-
+        createNewPallet(itemId, q, 'New_#');
         document.getElementById('new-item').value = '';
         document.getElementById('new-q').value = '';
       });
@@ -760,16 +646,16 @@ function loadWarehouseData() {
 
     // --- Authentication ---
     function initAuth() {
-      auth.onAuthStateChanged(user => {
+      firebase.auth().onAuthStateChanged(user => {
         if (user) {
-          console.log("User logged in:", user.email);
+          // User is signed in
           document.getElementById('login-container').style.display = 'none';
           document.getElementById('warehouse-app').style.display = 'block';
           document.getElementById('logout-btn').style.display = 'block';
-          loadWarehouseData();
+          loadWarehouseData(user.uid);
           initWarehouseApp();
         } else {
-          console.log("User not logged in");
+          // No user is signed in
           document.getElementById('login-container').style.display = 'flex';
           document.getElementById('warehouse-app').style.display = 'none';
           document.getElementById('logout-btn').style.display = 'none';
@@ -777,68 +663,34 @@ function loadWarehouseData() {
       });
     }
 
-  function initWarehouseApp() {
-  console.log("🏗️ Initializing warehouse app...");
-
-  const grid = document.querySelector('.grid-stack');
-  if (!grid) {
-    console.error("❌ .grid-stack element not found in DOM!");
-    return;
-  } else {
-    console.log("✅ .grid-stack element found, proceeding to create map...");
-  }
-
-  createGridLabels();
-  setupEventListeners();
-
-  // Auto-save every 30 seconds
-  setInterval(() => {
-    if (auth.currentUser) {
-      saveWarehouseData();
+    function initWarehouseApp() {
+      createGridLabels();
+      setupEventListeners();
+      
+      // Auto-save every 30 seconds
+      setInterval(() => {
+        const user = firebase.auth().currentUser;
+        if (user) saveWarehouseData(user.uid);
+      }, 30000);
     }
-  }, 2000);
-}
-
 
     // --- Initialize App ---
-    document.addEventListener('DOMContentLoaded', function() {
-      // Login button event
+    window.onload = function() {
+      // Set up login/logout
       document.getElementById('login-btn').addEventListener('click', () => {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        const errorEl = document.getElementById('login-error');
-        
-        if (!email || !password) {
-          errorEl.textContent = "Please enter both email and password";
-          errorEl.style.display = 'block';
-          return;
-        }
-        
-        auth.signInWithEmailAndPassword(email, password)
-          .then(() => {
-            errorEl.style.display = 'none';
-          })
-          .catch(error => {
-            console.error("Login error:", error);
-            errorEl.textContent = error.message;
-            errorEl.style.display = 'block';
-          });
+        firebase.auth().signInWithEmailAndPassword(email, password)
+          .catch(error => alert(error.message));
       });
 
-      // Logout button event
       document.getElementById('logout-btn').addEventListener('click', () => {
-        auth.signOut()
-          .then(() => {
-            console.log("User signed out");
-          })
-          .catch(error => {
-            console.error("Sign out error:", error);
-          });
+        firebase.auth().signOut();
       });
 
-      // Initialize auth
+      // Initialize authentication
       initAuth();
-    });
+    };
   </script>
 </body>
 </html>
