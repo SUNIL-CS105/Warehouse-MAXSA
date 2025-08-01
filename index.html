@@ -840,20 +840,22 @@
 
             window.addEventListener('resize', scaleGrid);
             function scaleGrid() {
-            const container = document.querySelector('.grid-stack');
-            const parent = document.getElementById('warehouse-container');
+            const parent = document.querySelector('#warehouse-app');
+            const container = document.querySelector('#warehouse-container');
             const screenWidth = parent.clientWidth;
             const screenHeight = parent.clientHeight;
             
             const originalWidth = 1730;
             const originalHeight = 1350;
         
-            scale = Math.min(screenWidth / originalWidth, screenHeight / originalHeight, 1);
+            const scale = Math.min(screenWidth / originalWidth, screenHeight / originalHeight, 1);
             
-            // Apply the scale to the main container only
-            parent.style.transform = `scale(${scale})`;
-            parent.style.left = `${(screenWidth - originalWidth * scale) / 2}px`;
-        }
+            // Apply the scale to the main container
+            container.style.transform = `scale(${scale})`;
+            
+            // Center the container horizontally
+            container.style.left = `${(screenWidth - originalWidth * scale) / 2}px`;
+            }
 
             scaleGrid();
         }
