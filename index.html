@@ -874,6 +874,7 @@
                     document.getElementById('warehouse-app').style.display = 'block';
                     document.getElementById('logout-btn').style.display = 'block';
                     loadWarehouseData();
+                    initWarehouseApp();
                 } else {
                     document.getElementById('login-container').style.display = 'flex';
                     document.getElementById('signup-container').style.display = 'none';
@@ -928,7 +929,6 @@
             });
 
             initAuth();
-            initWarehouseApp();
         };
     </script>
 </body>
