@@ -107,7 +107,7 @@
             transform-origin: top left;
         }
         #add-product-panel {
-        position: absolute; /* Add this */
+        position: fixed; /* Add this */
         top: 650px;
         left: 1000px;
         background: #27ae60;
@@ -145,7 +145,7 @@
             background: #27ae60;
         }
         #inventory-summary-panel {
-        position: absolute; /* Add this */
+        position: fixed; /* Add this */
         top: 80px;
         left: 1480px;
         background: #3498db;
@@ -174,7 +174,7 @@
             white-space: nowrap;
         }
        #history-panel {
-        position: absolute; /* Add this */
+        position: fixed; /* Add this */
         top: 790px;
         left: 1300px;
         background: #f1c40f;
@@ -350,30 +350,33 @@
 
     <div id="warehouse-app" style="display:none;">
         <h2>MAXSA Warehouse Map</h2>
+    <div id="warehouse-app" style="display:none;">
+    <h2>MAXSA Warehouse Map</h2>
     <div id="warehouse-container">
         <div class="grid-stack">
-            <div id="add-product-panel">
-                <input type="text" id="new-item" placeholder="Item #" />
-                <input type="number" id="new-q" placeholder="Quantity" min="1" />
-                <button id="add-product-btn">➕ Add New Product</button>
             </div>
+    </div>
     
-            <div id="inventory-summary-panel">
-                📊 Show Inventory Summary
-                <div id="inventory-summary-output" style="display:none;"></div>
-            </div>
-    
-            <div id="history-panel">
-                History
-                <div class="history-icons">
-                    <div class="history-icon-btn new-product" data-type="new-product" title="New Products">📦</div>
-                    <div class="history-icon-btn shipped" data-type="shipped" title="Shipped Products">🚚</div>
-                    <div class="history-icon-btn office" data-type="to-office" title="To Office Products">🏢</div>
-                </div>
-            </div>
-    
+    <div id="add-product-panel">
+        <input type="text" id="new-item" placeholder="Item #" />
+        <input type="number" id="new-q" placeholder="Quantity" min="1" />
+        <button id="add-product-btn">➕ Add New Product</button>
+    </div>
+
+    <div id="inventory-summary-panel">
+        📊 Show Inventory Summary
+        <div id="inventory-summary-output" style="display:none;"></div>
+    </div>
+
+    <div id="history-panel">
+        History
+        <div class="history-icons">
+            <div class="history-icon-btn new-product" data-type="new-product" title="New Products">📦</div>
+            <div class="history-icon-btn office" data-type="to-office" title="To Office Products">🏢</div>
+            <div class="history-icon-btn shipped" data-type="shipped" title="Shipped Products">🚚</div>
         </div>
     </div>
+</div>
             
         <div id="history-modal" class="modal">
             <div class="modal-content">
@@ -865,7 +868,7 @@
             const parent = document.getElementById('warehouse-container');
             const screenWidth = parent.clientWidth;
             const screenHeight = parent.clientHeight;
-            
+        
             const originalWidth = 1730;
             const originalHeight = 1350;
         
