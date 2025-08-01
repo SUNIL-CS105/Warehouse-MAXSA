@@ -107,10 +107,17 @@
             transform-origin: top left;
         }
         #add-product-panel {
-            top: 650px;
-            left: 1000px;
-            background: #27ae60;
-            z-index: 100;
+        position: absolute; /* Add this */
+        top: 650px;
+        left: 1000px;
+        background: #27ae60;
+        padding: 10px; /* Add this */
+        border-radius: 6px; /* Add this */
+        color: white; /* Add this */
+        font-weight: bold; /* Add this */
+        width: 200px; /* Add this */
+        box-sizing: border-box; /* Add this */
+        z-index: 100;
         }
         #add-product-panel input {
             width: calc(100% - 12px);
@@ -138,14 +145,21 @@
             background: #27ae60;
         }
         #inventory-summary-panel {
-            top: 80px;
-            left: 1480px;
-            background: #3498db;
-            width: 220px;
-            font-size: 14px;
-            cursor: pointer;
-            text-align: center;
-            user-select: none;
+        position: absolute; /* Add this */
+        top: 80px;
+        left: 1480px;
+        background: #3498db;
+        padding: 10px; /* Add this */
+        border-radius: 6px; /* Add this */
+        color: white; /* Add this */
+        font-weight: bold; /* Add this */
+        width: 220px;
+        box-sizing: border-box; /* Add this */
+        font-size: 14px;
+        cursor: pointer;
+        text-align: center;
+        user-select: none;
+        transform-origin: top left; /* Add this to ensure proper scaling with the grid */
         }
         #inventory-summary-output {
             max-height: 120px;
@@ -159,12 +173,18 @@
             text-align: left;
             white-space: nowrap;
         }
-        #history-panel {
-            top: 790px;
-            left: 1300px;
-            background: #f1c40f;
-            width: 160px;
-            text-align: center;
+       #history-panel {
+        position: absolute; /* Add this */
+        top: 790px;
+        left: 1300px;
+        background: #f1c40f;
+        padding: 10px; /* Add this */
+        border-radius: 6px; /* Add this */
+        color: white; /* Add this */
+        font-weight: bold; /* Add this */
+        width: 160px;
+        box-sizing: border-box; /* Add this */
+        text-align: center;
         }
         .history-icons {
             display: flex;
@@ -330,21 +350,20 @@
 
     <div id="warehouse-app" style="display:none;">
         <h2>MAXSA Warehouse Map</h2>
-        <div id="warehouse-container">
-            <div class="grid-stack"></div>
-
-            <div id="add-product-panel" class="control-panel">
+    <div id="warehouse-container">
+        <div class="grid-stack">
+            <div id="add-product-panel">
                 <input type="text" id="new-item" placeholder="Item #" />
                 <input type="number" id="new-q" placeholder="Quantity" min="1" />
                 <button id="add-product-btn">➕ Add New Product</button>
             </div>
-
-            <div id="inventory-summary-panel" class="control-panel" title="Show total quantities of all products (excluding shipped and To 8412 Office)">
+    
+            <div id="inventory-summary-panel">
                 📊 Show Inventory Summary
                 <div id="inventory-summary-output" style="display:none;"></div>
             </div>
-
-            <div id="history-panel" class="control-panel">
+    
+            <div id="history-panel">
                 History
                 <div class="history-icons">
                     <div class="history-icon-btn new-product" data-type="new-product" title="New Products">📦</div>
@@ -352,8 +371,10 @@
                     <div class="history-icon-btn office" data-type="to-office" title="To Office Products">🏢</div>
                 </div>
             </div>
+    
         </div>
-        
+    </div>
+            
         <div id="history-modal" class="modal">
             <div class="modal-content">
                 <span class="close-btn">&times;</span>
@@ -839,28 +860,20 @@
             });
 
             window.addEventListener('resize', scaleGrid);
-            function scaleGrid() {
-                const container = document.querySelector('.grid-stack');
-                const addPanel = document.getElementById('add-product-panel');
-                const summaryPanel = document.getElementById('inventory-summary-panel');
-                const historyPanel = document.getElementById('history-panel');
-
-                const parent = document.getElementById('warehouse-container');
-                const screenWidth = parent.clientWidth;
-                const screenHeight = parent.clientHeight;
-                
-                const originalWidth = 1730;
-                const originalHeight = 1350;
-
-                scale = Math.min(screenWidth / originalWidth, screenHeight / originalHeight, 1);
-                
-                container.style.transform = `scale(${scale})`;
-                addPanel.style.transform = `scale(${scale})`;
-                summaryPanel.style.transform = `scale(${scale})`;
-                historyPanel.style.transform = `scale(${scale})`;
-
-                container.style.left = `${(screenWidth - originalWidth * scale) / 2}px`;
-            }
+        function scaleGrid() {
+            const container = document.querySelector('.grid-stack');
+            const parent = document.getElementById('warehouse-container');
+            const screenWidth = parent.clientWidth;
+            const screenHeight = parent.clientHeight;
+            
+            const originalWidth = 1730;
+            const originalHeight = 1350;
+        
+            scale = Math.min(screenWidth / originalWidth, screenHeight / originalHeight, 1);
+            
+            container.style.transform = `scale(${scale})`;
+            container.style.left = `${(screenWidth - originalWidth * scale) / 2}px`;
+        }
 
             scaleGrid();
         }
