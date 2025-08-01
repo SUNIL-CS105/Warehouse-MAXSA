@@ -840,27 +840,20 @@
 
             window.addEventListener('resize', scaleGrid);
             function scaleGrid() {
-                const container = document.querySelector('.grid-stack');
-                const addPanel = document.getElementById('add-product-panel');
-                const summaryPanel = document.getElementById('inventory-summary-panel');
-                const historyPanel = document.getElementById('history-panel');
-
-                const parent = document.getElementById('warehouse-container');
-                const screenWidth = parent.clientWidth;
-                const screenHeight = parent.clientHeight;
-                
-                const originalWidth = 1730;
-                const originalHeight = 1350;
-
-                scale = Math.min(screenWidth / originalWidth, screenHeight / originalHeight, 1);
-                
-                container.style.transform = `scale(${scale})`;
-                addPanel.style.transform = `scale(${scale})`;
-                summaryPanel.style.transform = `scale(${scale})`;
-                historyPanel.style.transform = `scale(${scale})`;
-
-                container.style.left = `${(screenWidth - originalWidth * scale) / 2}px`;
-            }
+            const container = document.querySelector('.grid-stack');
+            const parent = document.getElementById('warehouse-container');
+            const screenWidth = parent.clientWidth;
+            const screenHeight = parent.clientHeight;
+            
+            const originalWidth = 1730;
+            const originalHeight = 1350;
+        
+            scale = Math.min(screenWidth / originalWidth, screenHeight / originalHeight, 1);
+            
+            // Apply the scale to the main container only
+            parent.style.transform = `scale(${scale})`;
+            parent.style.left = `${(screenWidth - originalWidth * scale) / 2}px`;
+        }
 
             scaleGrid();
         }
