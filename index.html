@@ -793,7 +793,7 @@
             historyOutput.innerHTML = 'Loading...';
             
             const historyRef = database.ref(`users/${user.uid}/history`).orderByChild('timestamp');
-            historyRef.on('value', (snapshot) => {
+            historyRef.once('value', (snapshot) => {
                 const data = snapshot.val();
                 historyOutput.innerHTML = '';
                 if (!data) {
