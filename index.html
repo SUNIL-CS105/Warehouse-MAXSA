@@ -10,14 +10,20 @@
     <style>
         body { font-family: Arial, sans-serif; background: #f5f5f5; margin:0; padding:1rem; overflow-x: hidden; }
         h2 { margin-top: 0; }
-        .grid-stack {
+        #warehouse-container {
             position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .grid-stack {
+            position: absolute;
             width: 1730px;
             height: 1350px;
             background: #ADD8E6;
             border: 2px solid #000000;
             user-select: none;
-            touch-action: none; /* Prevent browser touch actions */
+            touch-action: none;
             transform-origin: top left;
         }
         .label-cell {
@@ -66,7 +72,7 @@
             padding: 4px 2px 10px 2px;
             font-size: 12px;
             white-space: pre-line;
-            transition: transform 0.2s ease-out; /* Smooth transition for positioning */
+            transition: transform 0.2s ease-out;
         }
         .pallet.dragging {
             opacity: 0.6;
@@ -89,10 +95,8 @@
             user-select: none;
             z-index: 10;
         }
-        #add-product-panel {
+        .control-panel {
             position: absolute;
-            top: 650px;
-            left: 1000px;
             background: #27ae60;
             padding: 10px;
             border-radius: 6px;
@@ -100,6 +104,13 @@
             font-weight: bold;
             width: 200px;
             box-sizing: border-box;
+            transform-origin: top left;
+        }
+        #add-product-panel {
+            top: 650px;
+            left: 1000px;
+            background: #27ae60;
+            z-index: 100;
         }
         #add-product-panel input {
             width: calc(100% - 12px);
@@ -127,16 +138,10 @@
             background: #27ae60;
         }
         #inventory-summary-panel {
-            position: absolute;
             top: 80px;
             left: 1480px;
             background: #3498db;
-            padding: 10px;
-            border-radius: 6px;
-            color: white;
-            font-weight: bold;
             width: 220px;
-            box-sizing: border-box;
             font-size: 14px;
             cursor: pointer;
             text-align: center;
@@ -154,17 +159,11 @@
             text-align: left;
             white-space: nowrap;
         }
-        .history-panel {
-            position: absolute;
+        #history-panel {
             top: 790px;
             left: 1300px;
             background: #f1c40f;
-            padding: 10px;
-            border-radius: 6px;
-            color: white;
-            font-weight: bold;
             width: 160px;
-            box-sizing: border-box;
             text-align: center;
         }
         .history-icons {
@@ -188,8 +187,6 @@
         .history-icon-btn.new-product { background: #2ecc71; }
         .history-icon-btn.shipped { background: #e74c3c; }
         .history-icon-btn.office { background: #2980b9; }
-
-        /* Modal styles */
         .modal {
             display: none;
             position: fixed;
@@ -333,25 +330,27 @@
 
     <div id="warehouse-app" style="display:none;">
         <h2>MAXSA Warehouse Map</h2>
-        <div class="grid-stack"></div>
+        <div id="warehouse-container">
+            <div class="grid-stack"></div>
 
-        <div id="add-product-panel">
-            <input type="text" id="new-item" placeholder="Item #" />
-            <input type="number" id="new-q" placeholder="Quantity" min="1" />
-            <button id="add-product-btn">➕ Add New Product</button>
-        </div>
+            <div id="add-product-panel" class="control-panel">
+                <input type="text" id="new-item" placeholder="Item #" />
+                <input type="number" id="new-q" placeholder="Quantity" min="1" />
+                <button id="add-product-btn">➕ Add New Product</button>
+            </div>
 
-        <div id="inventory-summary-panel" title="Show total quantities of all products (excluding shipped and To 8412 Office)">
-            📊 Show Inventory Summary
-            <div id="inventory-summary-output" style="display:none;"></div>
-        </div>
+            <div id="inventory-summary-panel" class="control-panel" title="Show total quantities of all products (excluding shipped and To 8412 Office)">
+                📊 Show Inventory Summary
+                <div id="inventory-summary-output" style="display:none;"></div>
+            </div>
 
-        <div class="history-panel">
-            History
-            <div class="history-icons">
-                <div class="history-icon-btn new-product" data-type="new-product" title="New Products">📦</div>
-                <div class="history-icon-btn shipped" data-type="shipped" title="Shipped Products">🚚</div>
-                <div class="history-icon-btn office" data-type="to-office" title="To Office Products">🏢</div>
+            <div id="history-panel" class="control-panel">
+                History
+                <div class="history-icons">
+                    <div class="history-icon-btn new-product" data-type="new-product" title="New Products">📦</div>
+                    <div class="history-icon-btn shipped" data-type="shipped" title="Shipped Products">🚚</div>
+                    <div class="history-icon-btn office" data-type="to-office" title="To Office Products">🏢</div>
+                </div>
             </div>
         </div>
         
@@ -382,8 +381,8 @@
         // --- Warehouse App Variables ---
         const CELL_WIDTH = 80;
         const CELL_HEIGHT = 50;
-        let pallets = []; // array of pallet objects
-        let palletsByLocation = {}; // key = location name, value = array of pallets
+        let pallets = [];
+        let palletsByLocation = {};
         let scale = 1.0;
         let isDraggingPallet = false;
 
@@ -481,7 +480,6 @@
                     }
                 });
 
-                // Touch events for mobile support
                 this.el.addEventListener('touchstart', e => {
                     const touch = e.touches[0];
                     const palletRect = this.el.getBoundingClientRect();
@@ -556,7 +554,6 @@
                 this.el.dataset.location = newLoc;
 
                 if (newLoc === 'SHIPPED' || newLoc === 'TO 8412 OFFICE') {
-                    // Record history before removing
                     recordHistory(newLoc, this.itemId, this.quantity);
                     this.remove();
                     pallets = pallets.filter(p => p !== this);
@@ -578,9 +575,8 @@
         // --- Core Warehouse Functions ---
         function createGridLabels() {
             const container = document.querySelector('.grid-stack');
-            container.innerHTML = ''; // Clear previous labels
+            container.innerHTML = '';
 
-            // Main grid A1-X11 on left side
             const rows = locations.gridLabels.rows;
             for(let r = 0; r < rows.length; r++) {
                 for(let c = 1; c <= locations.gridLabels.cols; c++) {
@@ -595,7 +591,6 @@
                     container.appendChild(div);
                 }
             }
-            // Offices top right
             const off = locations.offices;
             for(let i = 1; i <= off.count; i++) {
                 const col = i % off.cols;
@@ -610,7 +605,6 @@
                 div.dataset.location = `Office${i}`;
                 container.appendChild(div);
             }
-            // Restrooms, shelves, temporary middle right
             locations.restroomsShelvesTemp.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'label-cell restroom-zone';
@@ -622,7 +616,6 @@
                 div.dataset.location = item.name;
                 container.appendChild(div);
             });
-            // Drop zones bottom right
             locations.dropZones.forEach(zone => {
                 const div = document.createElement('div');
                 div.className = 'label-cell drop-zone';
@@ -729,18 +722,15 @@
         }
 
         // --- Firebase Functions ---
-        // Load shared warehouse data (live updates)
         function loadWarehouseData() {
             const ref = database.ref('warehouse/pallets');
             ref.on('value', (snapshot) => {
                 const data = snapshot.val();
-                // Clear existing pallets
                 pallets.forEach(p => p.remove());
                 pallets = [];
                 palletsByLocation = {};
                 
                 if (data) {
-                    // Recreate pallets from shared data
                     Object.values(data).forEach(palletData => {
                         createNewPallet(palletData.itemId, palletData.quantity, palletData.location, false);
                     });
@@ -749,7 +739,6 @@
             });
         }
         
-        // Save changes to shared warehouse
         function saveWarehouseData() {
             const data = {};
             pallets.forEach(p => {
@@ -762,7 +751,6 @@
             database.ref('warehouse/pallets').set(data);
         }
 
-        // Record history to Firebase
         function recordHistory(type, itemId, quantity) {
             const user = firebase.auth().currentUser;
             if (!user) return;
@@ -775,7 +763,6 @@
             });
         }
 
-        // Fetch and display history
         function showHistory(type) {
             const user = firebase.auth().currentUser;
             if (!user) return;
@@ -798,7 +785,7 @@
                     if (type === 'shipped') return entry.type === 'SHIPPED';
                     if (type === 'to-office') return entry.type === 'TO 8412 OFFICE';
                     return false;
-                }).reverse(); // Show newest first
+                }).reverse();
                 
                 modalTitle.innerText = `${type.replace(/-/g, ' ').toUpperCase()} History`;
 
@@ -851,25 +838,30 @@
                 }
             });
 
-            // Handle window resizing to scale the grid
             window.addEventListener('resize', scaleGrid);
             function scaleGrid() {
                 const container = document.querySelector('.grid-stack');
-                const app = document.getElementById('warehouse-app');
-                const screenWidth = app.clientWidth - 20; // Subtract padding
-                const screenHeight = window.innerHeight - 200; // Leave space for panels
+                const addPanel = document.getElementById('add-product-panel');
+                const summaryPanel = document.getElementById('inventory-summary-panel');
+                const historyPanel = document.getElementById('history-panel');
+
+                const parent = document.getElementById('warehouse-container');
+                const screenWidth = parent.clientWidth;
+                const screenHeight = parent.clientHeight;
                 
                 const originalWidth = 1730;
                 const originalHeight = 1350;
 
-                const scaleX = screenWidth / originalWidth;
-                const scaleY = screenHeight / originalHeight;
-
-                scale = Math.min(scaleX, scaleY, 1); // Don't scale up past 100%
+                scale = Math.min(screenWidth / originalWidth, screenHeight / originalHeight, 1);
+                
                 container.style.transform = `scale(${scale})`;
+                addPanel.style.transform = `scale(${scale})`;
+                summaryPanel.style.transform = `scale(${scale})`;
+                historyPanel.style.transform = `scale(${scale})`;
+
+                container.style.left = `${(screenWidth - originalWidth * scale) / 2}px`;
             }
 
-            // Initial scaling
             scaleGrid();
         }
 
@@ -877,14 +869,12 @@
         function initAuth() {
             firebase.auth().onAuthStateChanged(user => {
                 if (user) {
-                    // User is signed in
                     document.getElementById('login-container').style.display = 'none';
                     document.getElementById('signup-container').style.display = 'none';
                     document.getElementById('warehouse-app').style.display = 'block';
                     document.getElementById('logout-btn').style.display = 'block';
                     loadWarehouseData();
                 } else {
-                    // No user is signed in
                     document.getElementById('login-container').style.display = 'flex';
                     document.getElementById('signup-container').style.display = 'none';
                     document.getElementById('warehouse-app').style.display = 'none';
@@ -897,7 +887,6 @@
             createGridLabels();
             setupEventListeners();
             
-            // Auto-save every 30 seconds
             setInterval(() => {
                 const user = firebase.auth().currentUser;
                 if (user) saveWarehouseData();
@@ -906,7 +895,6 @@
 
         // --- Initialize App ---
         window.onload = function() {
-            // Login/Logout
             document.getElementById('login-btn').addEventListener('click', () => {
                 const email = document.getElementById('login-email').value;
                 const password = document.getElementById('login-password').value;
@@ -918,7 +906,6 @@
                 firebase.auth().signOut();
             });
 
-            // Sign Up
             document.getElementById('show-signup').addEventListener('click', () => {
                 document.getElementById('login-container').style.display = 'none';
                 document.getElementById('signup-container').style.display = 'flex';
@@ -934,10 +921,8 @@
                 const password = document.getElementById('signup-password').value;
                 firebase.auth().createUserWithEmailAndPassword(email, password)
                     .then(userCredential => {
-                        // Signed up
                         const user = userCredential.user;
                         alert("Sign up successful! You are now logged in.");
-                        // The onAuthStateChanged listener will handle the rest
                     })
                     .catch(error => alert(error.message));
             });
