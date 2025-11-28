@@ -573,51 +573,63 @@
         }
 
         // --- Core Warehouse Functions ---
-function createGridLabels() {
-    const container = document.getElementById("grid-container");
+        function createGridLabels() {
+            const container = document.querySelector('.grid-stack');
+            container.innerHTML = '';
 
-    const rows = "ABCDEFGHIJKLMNOPQRSTUVWX".split("");
-    const cols = Array.from({ length: 11 }, (_, i) => i + 1);
-
-    // Add left row labels (A–X)
-    rows.forEach((rowLabel, r) => {
-        const label = document.createElement("div");
-        label.className = "row-label";
-        label.innerText = rowLabel;
-        label.style.position = "absolute";
-        label.style.left = "10px";          
-        label.style.top = `${50 + r * CELL_HEIGHT}px`;
-        label.style.fontWeight = "bold";
-        label.style.fontSize = "14px";
-        container.appendChild(label);
-    });
-
-    // Add bottom column labels (1–11)
-    cols.forEach((colNumber, c) => {
-        const label = document.createElement("div");
-        label.className = "col-label";
-        label.innerText = colNumber;
-        label.style.position = "absolute";
-        label.style.left = `${150 + c * CELL_WIDTH}px`;
-        label.style.top = `${50 + 24 * CELL_HEIGHT}px`;  
-        label.style.fontWeight = "bold";
-        label.style.fontSize = "14px";
-        container.appendChild(label);
-    });
-
-    // Create the grid cells (existing behavior)
-    for (let r = 0; r < rows.length; r++) {
-        for (let c = 1; c <= cols.length; c++) {
-            const div = document.createElement("div");
-            div.className = "grid-square";
-            div.innerText = `${rows[r]}${c}`;
-            div.style.left = `${150 + (c - 1) * CELL_WIDTH}px`;
-            div.style.top = `${50 + r * CELL_HEIGHT}px`;
-            container.appendChild(div);
+            const rows = locations.gridLabels.rows;
+            for(let r = 0; r < rows.length; r++) {
+                for(let c = 1; c <= locations.gridLabels.cols; c++) {
+                    const div = document.createElement('div');
+                    div.className = 'label-cell';
+                    div.style.left = `${c * CELL_WIDTH}px`;
+                    div.style.top = `${r * CELL_HEIGHT}px`;
+                    div.style.width = `${CELL_WIDTH}px`;
+                    div.style.height = `${CELL_HEIGHT}px`;
+                    div.innerText = `${rows[r]}${c}`;
+                    div.dataset.location = `${rows[r]}${c}`;
+                    container.appendChild(div);
+                }
+            }
+            const off = locations.offices;
+            for(let i = 1; i <= off.count; i++) {
+                const col = i % off.cols;
+                const row = Math.floor((i - 1) / off.cols);
+                const div = document.createElement('div');
+                div.className = 'label-cell office-zone';
+                div.style.left = `${off.startLeft + col * off.cellWidth}px`;
+                div.style.top = `${off.startTop + row * off.cellHeight}px`;
+                div.style.width = `${off.cellWidth}px`;
+                div.style.height = `${off.cellHeight}px`;
+                div.innerText = `Office${i}`;
+                div.dataset.location = `Office${i}`;
+                container.appendChild(div);
+            }
+            locations.restroomsShelvesTemp.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'label-cell restroom-zone';
+                div.style.left = `${item.left}px`;
+                div.style.top = `${item.top}px`;
+                div.style.width = `${item.width || CELL_WIDTH}px`;
+                div.style.height = `${item.height || CELL_HEIGHT}px`;
+                div.innerText = item.name;
+                div.dataset.location = item.name;
+                container.appendChild(div);
+            });
+            locations.dropZones.forEach(zone => {
+                const div = document.createElement('div');
+                div.className = 'label-cell drop-zone';
+                div.id = zone.id;
+                div.style.left = `${zone.left}px`;
+                div.style.top = `${zone.top}px`;
+                div.style.width = `${zone.width}px`;
+                div.style.height = `${zone.height}px`;
+                div.style.backgroundColor = zone.color;
+                div.innerText = zone.name;
+                div.dataset.location = zone.name;
+                container.appendChild(div);
+            });
         }
-    }
-}
-
 
         function findLocationUnder(x, y) {
             const container = document.querySelector('.grid-stack');
