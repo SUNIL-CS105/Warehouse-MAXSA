@@ -339,7 +339,7 @@
                 <button id="add-product-btn">➕ Add New Product</button>
             </div>
 
-            <div id="inventory-summary-panel" class="control-panel" title="Show total quantities of all products (excluding shipped and To 8412 Office)">
+            <div id="inventory-summary-panel" class="control-panel" title="Show total quantities of all products (excluding shipped and TO-8412-OFFICE)">
                 📊 Show Inventory Summary
                 <div id="inventory-summary-output" style="display:none;"></div>
             </div>
@@ -427,7 +427,7 @@
             ],
             dropZones: [
                 { id: "SHIPPED", name: "SHIPPED", left: 1300, top: 1100, width: 160, height: 80, color: '#e74c3c' },
-                { id: "TO-8412-OFFICE", name: "TO 8412 OFFICE", left: 1300, top: 950, width: 160, height: 80, color: '#2980b9' }
+                { id: "TO-8412-OFFICE", name: "TO-8412-OFFICE", left: 1300, top: 950, width: 160, height: 80, color: '#2980b9' }
             ]
         };
 
@@ -553,7 +553,7 @@
                 this.location = newLoc;
                 this.el.dataset.location = newLoc;
 
-                if (newLoc === 'SHIPPED' || newLoc === 'TO 8412 OFFICE') {
+                if (newLoc === 'SHIPPED' || newLoc === 'TO-8412-OFFICE') {
                     recordHistory(newLoc, this.itemId, this.quantity);
                     this.remove();
                     pallets = pallets.filter(p => p !== this);
@@ -710,7 +710,7 @@
         function updateInventorySummary() {
             const summary = {};
             pallets.forEach(p => {
-                if(p.location !== 'SHIPPED' && p.location !== 'TO 8412 OFFICE') {
+                if(p.location !== 'SHIPPED' && p.location !== 'TO-8412-OFFICE') {
                     summary[p.itemId] = (summary[p.itemId] || 0) + p.quantity;
                 }
             });
@@ -783,7 +783,7 @@
                 let entries = Object.values(data).filter(entry => {
                     if (type === 'new-product') return entry.type === 'new-product';
                     if (type === 'shipped') return entry.type === 'SHIPPED';
-                    if (type === 'to-office') return entry.type === 'TO 8412 OFFICE';
+                    if (type === 'to-office') return entry.type === 'TO-8412-OFFICE';
                     return false;
                 }).reverse();
                 
