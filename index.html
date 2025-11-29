@@ -545,9 +545,11 @@
                         this.quantity -= num;
                         this.updateText();
                         const newPallet = createNewPallet(this.itemId, num, this.location, false);
-                        pallets.push(newPallet);
-                        saveWarehouseData();
-                        adjustPalletSizesAtLocation(this.location);
+                            logProductMovement(this.itemId, num, this.location, this.location); // Splitting at same location
+                            pallets.push(newPallet);
+                            saveWarehouseData();
+                            adjustPalletSizesAtLocation(this.location);
+
                     }
                 });
             }
@@ -964,17 +966,14 @@ function rowColToLabel(row, col) {
 }
 
 // MAIN FUNCTION YOU WILL CALL WHEN A PALLET/PRODUCT MOVES
-function logProductMovement(productId, qty, oldRow, oldCol, newRow, newCol) {
-
-    const from = rowColToLabel(oldRow, oldCol);
-    const to   = rowColToLabel(newRow, newCol);
-
+function logProductMovement(productId, qty, oldLocation, newLocation) {
     // Update internal memory
-    productPositions[productId] = { row: newRow, col: newCol };
+    productPositions[productId] = newLocation;
 
     // Write history entry
-    addHistory(`${qty} of ${productId} is moved from ${from} → ${to}`);
+    addHistory(`${qty} of ${productId} is moved from ${oldLocation} → ${newLocation}`);
 }
+
 
 
 
