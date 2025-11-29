@@ -330,6 +330,20 @@
 
     <div id="warehouse-app" style="display:none;">
         <h2>MAXSA Warehouse Map</h2>
+
+        <div id="history-box" style="
+    position: absolute;
+    top: 1200px;
+    left: 1480px;
+    width: 220px;
+    height: 200px;
+    background: #eee;
+    border: 1px solid #ccc;
+    padding: 5px;
+    font-size: 12px;
+    overflow-y: auto;
+    "></div>
+        
         <div id="warehouse-container">
             <div class="grid-stack"></div>
 
@@ -541,7 +555,8 @@
             moveToLocation(newLoc) {
                 const oldLoc = this.location;
                 if (newLoc === oldLoc) return;
-
+                logProductMovement(this.itemId, this.quantity, oldLoc, newLoc);
+                
                 if (palletsByLocation[oldLoc]) {
                     palletsByLocation[oldLoc] = palletsByLocation[oldLoc].filter(p => p !== this);
                     if (palletsByLocation[oldLoc].length === 0) delete palletsByLocation[oldLoc];
