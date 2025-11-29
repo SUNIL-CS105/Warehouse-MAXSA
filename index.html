@@ -330,29 +330,6 @@
 
     <div id="warehouse-app" style="display:none;">
         <h2>MAXSA Warehouse Map</h2>
-
-        <div id="history-box" style="
-    position: absolute;
-    top: 1200px;
-    left: 1480px;
-    width: 220px;
-    height: 200px;
-    background: #eee;
-    border: 1px solid #ccc;
-    padding: 5px;
-    font-size: 12px;
-    overflow-y: auto;
-    "></div>
-
-
-
-        <div id="history-box"
-     style="position:absolute; right:10px; bottom:10px; width:380px; height:220px;
-            background:#fff; border:2px solid #333; padding:8px; 
-            overflow-y:auto; font-size:14px;">
-        </div>
-
-        
         <div id="warehouse-container">
             <div class="grid-stack"></div>
 
@@ -554,48 +531,41 @@
                         this.quantity -= num;
                         this.updateText();
                         const newPallet = createNewPallet(this.itemId, num, this.location, false);
-                        logProductMovement(this.itemId, num, this.location, this.location); // Splitting at same location
-                            pallets.push(newPallet);
-                            saveWarehouseData();
-                            adjustPalletSizesAtLocation(this.location);
-
+                        pallets.push(newPallet);
+                        saveWarehouseData();
+                        adjustPalletSizesAtLocation(this.location);
                     }
                 });
             }
 
-                      moveToLocation(newLoc) {
+            moveToLocation(newLoc) {
                 const oldLoc = this.location;
                 if (newLoc === oldLoc) return;
-            
-                // 1️⃣ Log movement to on-screen history
-                logProductMovement(this.itemId, this.quantity, oldLoc, newLoc);
-            
-                // 2️⃣ Update internal pallet location
+
                 if (palletsByLocation[oldLoc]) {
                     palletsByLocation[oldLoc] = palletsByLocation[oldLoc].filter(p => p !== this);
+                    if (palletsByLocation[oldLoc].length === 0) delete palletsByLocation[oldLoc];
                 }
+
                 if (!palletsByLocation[newLoc]) palletsByLocation[newLoc] = [];
                 palletsByLocation[newLoc].push(this);
-            
+
                 this.location = newLoc;
                 this.el.dataset.location = newLoc;
-            
-                // 3️⃣ Handle special zones
+
                 if (newLoc === 'SHIPPED' || newLoc === 'TO-8412-OFFICE') {
-                    recordHistory(newLoc, this.itemId, this.quantity);  // Firebase log
+                    recordHistory(newLoc, this.itemId, this.quantity);
                     this.remove();
                     pallets = pallets.filter(p => p !== this);
                     updateInventorySummary();
                 } else {
                     positionPalletInLocation(this);
                 }
-            
-                // 4️⃣ Save + resize stacks
+
                 saveWarehouseData();
                 adjustPalletSizesAtLocation(oldLoc);
                 adjustPalletSizesAtLocation(newLoc);
             }
-
 
             remove() {
                 if(this.el.parentNode) this.el.parentNode.removeChild(this.el);
@@ -955,41 +925,8 @@
 
             initAuth();
         };
-
-        /*********************
- * PRODUCT MOVE HISTORY LOGGING
- *********************/
-
-// Stores all product positions
-// If you already have a product list, this will merge with it safely.
-const productPositions = {};
-
-// Universal history log function
-function addHistory(msg) {
-    const box = document.getElementById("history-box") || document.getElementById("historyBox");
-    if (!box) return;
-    box.innerHTML += msg + "<br>";
-    box.scrollTop = box.scrollHeight; // auto-scroll to bottom
-}
-
-// Convert row/col numbers to labels (A, B, C… + 1,2,3…)
-function rowColToLabel(row, col) {
-    const rows = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-    return rows[row] + (col + 1);
-}
-
-// MAIN FUNCTION YOU WILL CALL WHEN A PALLET/PRODUCT MOVES
-function logProductMovement(productId, qty, oldLocation, newLocation) {
-    // Update internal memory
-    productPositions[productId] = newLocation;
-
-    // Write history entry
-    addHistory(`${qty} of ${productId} is moved from ${oldLocation} → ${newLocation}`);
-}
-
-
-
-
     </script>
 </body>
 </html>
+
+
