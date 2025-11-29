@@ -926,121 +926,42 @@
             initAuth();
         };
 
-        /***************************
- * GRID CONFIG
- ***************************/
-const ROWS = "ABCDEFGHIJKLMNOPQRSTUVWX".split("");   // 24 rows A–X
-const COLS = 11;                                     // 1–11 columns
-const CELL = 40;                                     // pixel size of square
+        /*********************
+ * PRODUCT MOVE HISTORY LOGGING
+ *********************/
 
-const products = {
-    // Example data structure
-    "453521": { qty: 100, row: 1, col: 2 },  // means: B3
-};
+// Stores all product positions
+// If you already have a product list, this will merge with it safely.
+const productPositions = {};
 
-let selectedProduct = "453521"; // The pallet you are moving
+// Universal history log function
+function addHistory(msg) {
+    const box = document.getElementById("history-box") || document.getElementById("historyBox");
+    if (!box) return;
+    box.innerHTML += msg + "<br>";
+    box.scrollTop = box.scrollHeight; // auto-scroll to bottom
+}
 
+// Convert row/col numbers to labels (A, B, C… + 1,2,3…)
+function rowColToLabel(row, col) {
+    const rows = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    return rows[row] + (col + 1);
+}
 
-/***************************
- * CREATE GRID
- ***************************/
-function createGrid() {
-    const container = document.getElementById("grid-container");
-    container.style.position = "relative";
-    container.style.width = `${COLS * CELL + 150}px`;
-    container.style.height = `${ROWS.length * CELL + 150}px`;
-    container.style.border = "1px solid #ddd";
+// MAIN FUNCTION YOU WILL CALL WHEN A PALLET/PRODUCT MOVES
+function logProductMovement(productId, qty, oldRow, oldCol, newRow, newCol) {
 
-    // Create squares
-    for (let r = 0; r < ROWS.length; r++) {
-        for (let c = 0; c < COLS; c++) {
-            const div = document.createElement("div");
-            div.className = "grid-square";
+    const from = rowColToLabel(oldRow, oldCol);
+    const to   = rowColToLabel(newRow, newCol);
 
-            div.style.width = `${CELL}px`;
-            div.style.height = `${CELL}px`;
-            div.style.border = "1px solid #bbb";
-            div.style.position = "absolute";
-            div.style.left = `${c * CELL + 50}px`;
-            div.style.top = `${r * CELL + 50}px`;
+    // Update internal memory
+    productPositions[productId] = { row: newRow, col: newCol };
 
-            const rowLabel = ROWS[r];
-            const colLabel = c + 1;
-
-            div.dataset.row = r;
-            div.dataset.col = c;
-
-            div.onclick = () => moveProductTo(r, c);
-
-            container.appendChild(div);
-        }
-    }
-
-    // Left row labels A–X
-    for (let r = 0; r < ROWS.length; r++) {
-        const lbl = document.createElement("div");
-        lbl.innerText = ROWS[r];
-        lbl.style.position = "absolute";
-        lbl.style.left = "10px";
-        lbl.style.top = `${r * CELL + 55}px`;
-        lbl.style.fontWeight = "bold";
-        container.appendChild(lbl);
-    }
-
-    // Bottom column labels 1–11
-    for (let c = 0; c < COLS; c++) {
-        const lbl = document.createElement("div");
-        lbl.innerText = c + 1;
-        lbl.style.position = "absolute";
-        lbl.style.left = `${c * CELL + 65}px`;
-        lbl.style.top = `${ROWS.length * CELL + 55}px`;
-        lbl.style.fontWeight = "bold";
-        container.appendChild(lbl);
-    }
+    // Write history entry
+    addHistory(`${qty} of ${productId} is moved from ${from} → ${to}`);
 }
 
 
-
-/***************************
- * MOVE PRODUCT + HISTORY
- ***************************/
-function moveProductTo(newRow, newCol) {
-    const product = products[selectedProduct];
-
-    const oldRow = product.row;
-    const oldCol = product.col;
-
-    // Convert to human-readable labels
-    const from = `${ROWS[oldRow]}${oldCol + 1}`;
-    const to   = `${ROWS[newRow]}${newCol + 1}`;
-
-    // Update product location
-    product.row = newRow;
-    product.col = newCol;
-
-    // Log history
-    addHistory(`${product.qty} of ${selectedProduct} is moved from ${from} → ${to}`);
-}
-
-
-
-/***************************
- * HISTORY LOGGING
- ***************************/
-function addHistory(text) {
-    const box = document.getElementById("history-box");
-    box.innerHTML += text + "<br>";
-}
-
-
-
-/***************************
- * INIT
- ***************************/
-createGrid();
-
-// Log initial position
-addHistory(`${products["453521"].qty} of 453521 starts at ${ROWS[products["453521"].row]}${products["453521"].col + 1}`);
 
     </script>
 </body>
